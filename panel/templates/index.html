@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="bladerunner">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KNOB SYSTEMS MONITOR</title>
+<link rel="stylesheet" href="/static/base.css">
+<link id="theme-css" rel="stylesheet" href="/static/themes/bladerunner.css">
+<style>
+  /* gauges */
+  .gauge-track { fill: none; stroke: var(--panel-border); stroke-width: 8; }
+  .gauge-fill  { fill: none; stroke: var(--accent-primary); stroke-width: 8;
+                 stroke-linecap: round; transition: stroke-dashoffset 0.4s ease; }
+  .gauge-needle { stroke: var(--accent-secondary); stroke-width: 2; }
+  .gauge-val { font-family: var(--font-mono); font-size: 14px;
+               fill: var(--accent-primary); text-anchor: middle; }
+
+  /* ── Now Playing card ── */
+  #np-card {
+    background: #080818;
+    border: 1px solid #0a2a3a;
+    padding: 1rem 1.1rem 0.9rem;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  #np-playing-indicator {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+    margin-bottom: 0.5rem;
+  }
+  #np-playing-indicator .bar {
+    width: 4px;
+    background: #00e5ff;
+    animation: bounce 0.8s ease-in-out infinite alternate;
+    box-shadow: 0 0 6px #00e5ff;
+  }
+  #np-playing-indicator .bar:nth-child(1) { height: 8px;  animation-delay: 0s;    animation-duration: 0.7s; }
+  #np-playing-indicator .bar:nth-child(2) { height: 14px; animation-delay: 0.15s; animation-duration: 0.5s; }
+  #np-playing-indicator .bar:nth-child(3) { height: 10px; animation-delay: 0.3s;  animation-duration: 0.9s; }
+  #np-playing-indicator .bar:nth-child(4) { height: 16px; animation-delay: 0.1s;  animation-duration: 0.6s; }
+  #np-playing-indicator.paused .bar { animation: none; height: 4px !important; }
+  @keyframes bounce { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+
+  #np-source-badge {
+    display: inline-block;
+    background: #0a2a3a;
+    color: #00e5ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    padding: 2px 7px;
+    margin-bottom: 0.5rem;
+  }
+  #np-artist {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 1.55rem;
+    color: #00e5ff;
+    text-shadow: 0 0 14px rgba(0,229,255,0.4);
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.05em;
+  }
+  #np-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    color: #7ee8fa;
+    line-height: 1.3;
+    margin-bottom: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* progress bar */
+  #np-progress-outer {
+    height: 3px;
+    background: #04040f;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+  }
+  #np-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #003344, #00e5ff);
+    transition: width 1s linear;
+    width: 100%;
+    box-shadow: 0 0 6px #00e5ff;
+  }
+  #np-time-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: #1a4a5a;
+  }
+  #np-remaining { color: #00e5ff; }
+
+  #np-dj-badge {
+    display: none;
+    position: absolute;
+    top: 0.75rem; right: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: #ff003c;
+    text-shadow: 0 0 8px #ff003c;
+    animation: dj-pulse 1.1s ease-in-out infinite alternate;
+  }
+  #np-dj-badge.active { display: block; }
+  @keyframes dj-pulse { from { opacity: 1; } to { opacity: 0.3; } }
+
+  /* ── Current Program bar ── */
+  #np-next-bar {
+    background: #04040f;
+    border: 1px solid #0a2a3a;
+    padding: 0.45rem 1rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+  #np-next-label {
+    color: #1a4a5a;
+    letter-spacing: 0.14em;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+  }
+  #np-next-val { color: #7ee8fa; }
+
+  /* ── DJ connect box ── */
+  #dj-connect-box {
+    background: #080818;
+    border: 1px solid #0a2a3a;
+    padding: 0.7rem 1rem;
+    margin-bottom: 8px;
+  }
+  .dj-connect-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    color: #ff6b35;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #0a2a3a;
+    text-transform: uppercase;
+  }
+  .dj-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #040414;
+  }
+  .dj-row:last-child { border-bottom: none; }
+  .dj-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    color: #1a4a5a;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .dj-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.05rem;
+    color: #00e5ff;
+  }
+
+  /* ── Recently played entries ── */
+  #ticker-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: #ff6b35;
+    padding: 0.3rem 0 0.4rem;
+    text-transform: uppercase;
+  }
+  .ticker-entry {
+    background: #030308;
+    border-left: 2px solid #0a2a3a;
+    padding: 0.35rem 0.6rem;
+    margin-bottom: 5px;
+  }
+  .ticker-entry.new { border-left-color: #00e5ff; box-shadow: -2px 0 8px rgba(0,229,255,0.3); }
+  .ticker-entry.milestone { border-left-color: #ff003c; }
+  .ticker-entry .ticker-ts {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: #1a4a5a;
+    display: block;
+    margin-bottom: 1px;
+  }
+  .ticker-entry .ticker-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.88rem;
+    color: #7ee8fa;
+    line-height: 1.3;
+  }
+  .ticker-entry.new .ticker-msg { color: #00e5ff; }
+</style>
+</head>
+<body>
+<canvas id="bg-effect"></canvas>
+<div id="milestone-flash"></div>
+
+<div id="page">
+
+  <!-- Header -->
+  <div id="panel-header">
+    <div>
+      <div id="panel-title">◈ KNOB SYSTEMS MONITOR</div>
+      <div id="panel-subtitle">KNOB 90.7 FM — NOISEBRIDGE — <span id="clock"></span></div>
+    </div>
+  </div>
+
+
+  <!-- Metrics bar -->
+  <div id="metrics-bar">
+    <div class="metric-block">
+      <div class="metric-title">CPU LOAD</div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="m-cpu-val">--</span>
+        <span class="metric-unit">%</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="m-cpu-bar"></div></div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-title">MEMORY</div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="m-mem-val">--</span>
+        <span class="metric-unit">%</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="m-mem-bar"></div></div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-title">WF VELOCITY</div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="m-vel-val">--</span>
+        <span class="metric-unit">/s</span>
+      </div>
+      <canvas id="vel-sparkline"></canvas>
+    </div>
+    <div class="metric-block">
+      <div class="metric-title">ACCELERATION</div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="m-accel-val">--</span>
+        <span class="metric-unit">/s²</span>
+      </div>
+      <div class="metric-delta" id="m-accel-label">steady</div>
+    </div>
+  </div>
+
+  <!-- Blinken racks -->
+  <div id="blinken-section">
+    <div class="blinken-rack" id="rack-0">
+      <div class="blinken-rack-label" id="rack-0-label">PORT BANK ALPHA</div>
+      <div class="blinken-row" id="blinken-row-0"></div>
+      <div class="blinken-labels" id="blinken-labels-0"></div>
+    </div>
+    <div class="blinken-rack" id="rack-1">
+      <div class="blinken-rack-label" id="rack-1-label">PORT BANK BRAVO</div>
+      <div class="blinken-row" id="blinken-row-1"></div>
+      <div class="blinken-labels" id="blinken-labels-1"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar + instrument grid -->
+  <div id="main-content">
+    <div id="ticker-section">
+
+      <!-- Now Playing card -->
+      <div id="np-card">
+        <div id="np-dj-badge">🎙 LIVE DJ ON AIR</div>
+        <div id="np-playing-indicator">
+          <span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span>
+        </div>
+        <div id="np-source-badge">AUTODJ</div>
+        <div id="np-artist">—</div>
+        <div id="np-title">—</div>
+        <div id="np-progress-outer"><div id="np-progress-fill"></div></div>
+        <div id="np-time-row">
+          <span id="np-elapsed">0:00</span>
+          <span id="np-remaining">--:--</span>
+        </div>
+      </div>
+
+      <!-- Up Next bar -->
+      <div id="np-next-bar">
+        <span id="np-next-label">CURRENT PROGRAM</span>
+        <span id="np-next-val">—</span>
+      </div>
+
+      <!-- DJ connection info -->
+      <div id="dj-connect-box">
+        <div class="dj-connect-title">CONNECT AS LIVE DJ</div>
+        <div class="dj-row"><span class="dj-label">PROTOCOL</span><span class="dj-val">Icecast / Shoutcast</span></div>
+        <div class="dj-row"><span class="dj-label">HOST</span><span class="dj-val">beyla:8005</span></div>
+        <div class="dj-row"><span class="dj-label">USER</span><span class="dj-val">nbradio</span></div>
+        <div class="dj-row"><span class="dj-label">PASSWORD</span><span class="dj-val">nbradio</span></div>
+      </div>
+
+      <!-- Recently played -->
+      <div id="ticker-label">▸ RECENTLY PLAYED</div>
+      <div id="ticker-entries"></div>
+
+    </div>
+    <div id="instruments-grid"></div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// Theme config
+// ─────────────────────────────────────────────
+const THEMES = {
+  steampunk: {
+    cssHref: '/static/themes/steampunk.css',
+    rackLabels: ['PORT BANK ALPHA', 'PORT BANK BRAVO'],
+    bgEffect: 'gears',
+    blinkDecayMs: 380,
+  },
+  bladerunner: {
+    cssHref: '/static/themes/bladerunner.css',
+    rackLabels: ['SECTOR A // NODE CLUSTER', 'SECTOR B // RELAY NET'],
+    bgEffect: 'rain',
+    blinkDecayMs: 120,
+  },
+};
+
+let currentTheme = 'bladerunner';
+let bgStop = null;
+
+function setTheme(name) {
+  if (!THEMES[name]) return;
+  currentTheme = name;
+  localStorage.setItem('panel-theme', name);
+  document.documentElement.setAttribute('data-theme', name);
+  document.getElementById('theme-css').href = THEMES[name].cssHref;
+  document.querySelectorAll('[data-theme-btn]').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeBtn === name);
+  });
+  const cfg = THEMES[name];
+  document.getElementById('rack-0-label').textContent = cfg.rackLabels[0];
+  document.getElementById('rack-1-label').textContent = cfg.rackLabels[1];
+  if (bgStop) bgStop();
+  bgStop = startBgEffect(cfg.bgEffect);
+  // re-draw all coils with new theme colors
+  document.querySelectorAll('.coil-canvas').forEach(cv => {
+    const id = cv.id.replace('coil-canvas-', '');
+    if (!coilAnims[id]) drawCoilBody(cv, false);
+  });
+}
+
+// ─────────────────────────────────────────────
+// Blinken init (32 LEDs across 2 racks)
+// ─────────────────────────────────────────────
+const blinkTimers = {};
+
+function initBlinken() {
+  for (let rack = 0; rack < 2; rack++) {
+    const row = document.getElementById(`blinken-row-${rack}`);
+    const labels = document.getElementById(`blinken-labels-${rack}`);
+    row.innerHTML = ''; labels.innerHTML = '';
+    for (let i = 0; i < 16; i++) {
+      const ch = rack * 16 + i;
+      const led = document.createElement('div');
+      led.className = 'blinken-led';
+      led.id = `led-${ch}`;
+      led.title = `ch ${ch}`;
+      row.appendChild(led);
+      const lbl = document.createElement('div');
+      lbl.className = 'blinken-label';
+      lbl.textContent = ch;
+      labels.appendChild(lbl);
+    }
+  }
+}
+
+function blink(channel, color) {
+  const led = document.getElementById(`led-${channel}`);
+  if (!led) return;
+  clearTimeout(blinkTimers[channel]);
+  led.classList.add('on');
+  led.style.setProperty('--blinken-active', colorToVar(color));
+  const decayMs = THEMES[currentTheme]?.blinkDecayMs ?? 300;
+  blinkTimers[channel] = setTimeout(() => led.classList.remove('on'), decayMs);
+}
+
+function colorToVar(color) {
+  const map = {
+    green: 'var(--lamp-on-green)', red: 'var(--lamp-on-red)',
+    amber: 'var(--lamp-on-amber)', blue: 'var(--lamp-on-blue)',
+  };
+  return map[color] || 'var(--blinken-active)';
+}
+
+// ─────────────────────────────────────────────
+// Knife switch SVG
+// ─────────────────────────────────────────────
+function knifeSVG(id) {
+  // viewBox 100×100. Pivot at (20,75), contact at (75,30).
+  // CSS in base.css sets transform-origin: 20px 75px for .knife-blade-g
+  return `<svg class="knife-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- base plate -->
+  <rect x="8" y="88" width="84" height="8" rx="3" fill="var(--knife-post)"/>
+  <!-- left insulator post -->
+  <rect x="16" y="75" width="8" height="15" rx="2" fill="var(--knife-post)"/>
+  <circle cx="20" cy="75" r="5" fill="var(--knife-contact)"/>
+  <!-- right contact post -->
+  <rect x="71" y="30" width="8" height="22" rx="2" fill="var(--knife-post)"/>
+  <circle cx="75" cy="30" r="5" fill="var(--knife-contact)"/>
+  <!-- blade group — rotates around (20,75) via CSS transform-origin -->
+  <g class="knife-blade-g open" id="blade-${id}">
+    <line x1="20" y1="75" x2="75" y2="30"
+          stroke="var(--knife-blade)" stroke-width="6" stroke-linecap="round"/>
+    <rect x="68" y="24" width="14" height="12" rx="3" fill="var(--knife-handle)"/>
+  </g>
+  <!-- spark — flashes at contact point on close -->
+  <g class="knife-spark" id="spark-${id}" style="opacity:0">
+    <circle cx="75" cy="30" r="10" fill="var(--knife-contact)" opacity="0.5"/>
+    <line x1="75" y1="12" x2="75" y2="21" stroke="var(--knife-contact)" stroke-width="2"/>
+    <line x1="75" y1="39" x2="75" y2="48" stroke="var(--knife-contact)" stroke-width="2"/>
+    <line x1="57" y1="30" x2="66" y2="30" stroke="var(--knife-contact)" stroke-width="2"/>
+    <line x1="84" y1="30" x2="93" y2="30" stroke="var(--knife-contact)" stroke-width="2"/>
+  </g>
+</svg>`;
+}
+
+function toggleKnife(id) {
+  const blade = document.getElementById(`blade-${id}`);
+  if (!blade) return;
+  const newPos = blade.classList.contains('closed') ? 'open' : 'closed';
+  // optimistic update
+  blade.className = `knife-blade-g ${newPos}`;
+  if (newPos === 'closed') flashSpark(id);
+  fetch(`/api/action/knife/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ position: newPos }),
+  });
+}
+
+function flashSpark(id) {
+  const spark = document.getElementById(`spark-${id}`);
+  if (!spark) return;
+  spark.classList.remove('flash');
+  void spark.offsetWidth; // reflow to restart animation
+  spark.classList.add('flash');
+  setTimeout(() => spark.classList.remove('flash'), 500);
+}
+
+// ─────────────────────────────────────────────
+// Tesla coil canvas
+// ─────────────────────────────────────────────
+const coilAnims = {}; // id → { raf, stop }
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function drawCoilBody(canvas, active) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const bodyColor   = cssVar('--coil-body')      || '#C8960C';
+  const termColor   = cssVar('--coil-terminal')  || '#e8d090';
+  const baseColor   = cssVar('--coil-base')      || '#3d1c02';
+  const glowColor   = cssVar('--coil-glow')      || '#d4820a';
+
+  // ground plate
+  ctx.fillStyle = baseColor;
+  ctx.beginPath();
+  ctx.roundRect(15, 162, 110, 14, 3);
+  ctx.fill();
+
+  // primary coil — 5 fat rings at bottom
+  ctx.lineWidth = 3.5;
+  for (let i = 0; i < 5; i++) {
+    const y = 134 + i * 6;
+    ctx.strokeStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(70, y, 48, 7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // secondary coil — 16 thin rings above
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 16; i++) {
+    const y = 58 + i * 5;
+    ctx.strokeStyle = bodyColor;
+    ctx.beginPath();
+    ctx.ellipse(70, y, 27, 4, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // toroid terminal
+  if (active) {
+    ctx.save();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = glowColor;
+    ctx.strokeStyle = termColor;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.ellipse(70, 40, 28, 11, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = termColor;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.ellipse(70, 40, 28, 11, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function genLightning(x1, y1, x2, y2, depth) {
+  if (depth === 0) return [{x: x1, y: y1}, {x: x2, y: y2}];
+  const spread = (Math.abs(x2 - x1) + Math.abs(y2 - y1)) * 0.45;
+  const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * spread;
+  const my = (y1 + y2) / 2 + (Math.random() - 0.5) * spread;
+  return [
+    ...genLightning(x1, y1, mx, my, depth - 1),
+    ...genLightning(mx, my, x2, y2, depth - 1).slice(1),
+  ];
+}
+
+function startCoilAnim(id) {
+  if (coilAnims[id]) return;
+  let running = true;
+  let lastBoltTs = 0;
+  let bolt = null;
+  let boltLifeMs = 0;
+
+  function frame(ts) {
+    if (!running) return;
+    const canvas = document.getElementById(`coil-canvas-${id}`);
+    if (!canvas) { running = false; return; }
+
+    drawCoilBody(canvas, true);
+
+    // refresh bolt every 150–400 ms
+    if (!bolt || ts - lastBoltTs > boltLifeMs) {
+      lastBoltTs = ts;
+      boltLifeMs = 150 + Math.random() * 250;
+      const angle = (Math.random() * 140 - 70) * Math.PI / 180;
+      const dist  = 28 + Math.random() * 45;
+      bolt = genLightning(70, 29, 70 + Math.sin(angle) * dist, 29 - Math.cos(angle) * dist, 4);
+    }
+
+    if (bolt) {
+      const lightColor = cssVar('--coil-lightning') || 'rgba(255,200,100,0.9)';
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.strokeStyle = lightColor;
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = lightColor;
+      ctx.beginPath();
+      bolt.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    coilAnims[id].raf = requestAnimationFrame(frame);
+  }
+
+  coilAnims[id] = { raf: null, stop: () => { running = false; } };
+  coilAnims[id].raf = requestAnimationFrame(frame);
+}
+
+function stopCoilAnim(id) {
+  if (coilAnims[id]) {
+    coilAnims[id].stop();
+    cancelAnimationFrame(coilAnims[id].raf);
+    delete coilAnims[id];
+  }
+  const canvas = document.getElementById(`coil-canvas-${id}`);
+  if (canvas) drawCoilBody(canvas, false);
+}
+
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Instrument cards + section boxes
+// ─────────────────────────────────────────────
+const instruments = {};
+const sectionBoxes = {};
+
+function ensureSection(section) {
+  const key = section || '_misc';
+  if (sectionBoxes[key]) return sectionBoxes[key].cardsEl;
+  const grid = document.getElementById('instruments-grid');
+  const box = document.createElement('div');
+  box.className = 'section-box';
+  box.id = 'section-box-' + key.replace(/\s+/g, '-').toLowerCase();
+  if (section) {
+    const title = document.createElement('div');
+    title.className = 'section-box-title';
+    title.textContent = section;
+    box.appendChild(title);
+  }
+  const cardsEl = document.createElement('div');
+  cardsEl.className = 'section-box-cards';
+  box.appendChild(cardsEl);
+  grid.appendChild(box);
+  sectionBoxes[key] = { box, cardsEl };
+  return cardsEl;
+}
+
+function ensureCard(id, kind, label, section) {
+  if (instruments[id]) return;
+  instruments[id] = { kind, state: {} };
+  const cardsEl = ensureSection(section);
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'card-' + id;
+  card.dataset.kind = kind;
+
+  let inner = '';
+  if (kind === 'lamp') {
+    inner = '<div class="lamp-bulb" id="lamp-' + id + '"></div>'
+          + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'gauge') {
+    inner = '<div class="gauge-wrap">' + gaugesvg(id) + '</div>'
+          + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'knob') {
+    inner = '<div class="knob-wrap" id="knob-' + id + '" title="drag to adjust">'
+          +   '<div class="knob-indicator" id="knob-ind-' + id + '"></div>'
+          + '</div>'
+          + '<div class="knob-value" id="knob-val-' + id + '">50</div>'
+          + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'switch') {
+    inner = '<div class="switch-body down" id="sw-' + id + '">'
+          +   '<div class="switch-lever"></div>'
+          + '</div>'
+          + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'knife') {
+    inner = knifeSVG(id) + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'coil') {
+    inner = '<canvas class="coil-canvas" id="coil-canvas-' + id + '" width="140" height="180"></canvas>'
+          + '<div class="card-label">' + label + '</div>';
+  }
+
+  card.innerHTML = inner;
+  cardsEl.appendChild(card);
+
+  if (kind === 'coil') {
+    const cv = document.getElementById('coil-canvas-' + id);
+    if (cv) drawCoilBody(cv, false);
+  }
+}
+
+function gaugesvg(id) {
+  const r = 38, cx = 50, cy = 55;
+  const startAngle = -210, endAngle = 30;
+  function polar(angle, radius) {
+    const rad = (angle * Math.PI) / 180;
+    return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
+  }
+  const [sx, sy] = polar(startAngle, r);
+  const [ex, ey] = polar(endAngle, r);
+  const circumference = r * Math.PI * (300 / 180);
+  return `<svg viewBox="0 0 100 65" xmlns="http://www.w3.org/2000/svg">
+    <path class="gauge-track" d="M${sx},${sy} A${r},${r} 0 1,1 ${ex},${ey}" />
+    <path class="gauge-fill" id="gfill-${id}"
+      d="M${sx},${sy} A${r},${r} 0 1,1 ${ex},${ey}"
+      stroke-dasharray="${circumference}"
+      stroke-dashoffset="${circumference}" />
+    <text class="gauge-val" id="gval-${id}" x="50" y="58">0</text>
+  </svg>`;
+}
+
+function updateCard(id, kind, value) {
+  if (!instruments[id]) return;
+  instruments[id].state = value;
+
+  if (kind === 'lamp') {
+    const el = document.getElementById(`lamp-${id}`);
+    if (!el) return;
+    el.className = 'lamp-bulb';
+    if (value.state === 'on') el.classList.add(`on-${value.color || 'amber'}`);
+
+  } else if (kind === 'gauge') {
+    const pct = Math.max(0, Math.min(100, value.value ?? 0));
+    const fill = document.getElementById(`gfill-${id}`);
+    const val  = document.getElementById(`gval-${id}`);
+    if (!fill) return;
+    const r = 38, circumference = r * Math.PI * (300 / 180);
+    fill.style.strokeDashoffset = circumference * (1 - pct / 100);
+    if (val) val.textContent = Math.round(pct);
+
+  } else if (kind === 'knob') {
+    const pct = Math.max(0, Math.min(100, value.value ?? 50));
+    const ind = document.getElementById(`knob-ind-${id}`);
+    const valEl = document.getElementById(`knob-val-${id}`);
+    if (ind) ind.style.transform = `rotate(${-135 + pct * 2.7}deg)`;
+    if (valEl) valEl.textContent = Math.round(pct);
+
+  } else if (kind === 'switch') {
+    const sw = document.getElementById(`sw-${id}`);
+    if (!sw) return;
+    sw.className = `switch-body ${value.position === 'up' ? 'up' : 'down'}`;
+
+  } else if (kind === 'knife') {
+    const blade = document.getElementById(`blade-${id}`);
+    if (!blade) return;
+    const pos = value.position || 'open';
+    const wasOpen = blade.classList.contains('open');
+    blade.className = `knife-blade-g ${pos}`;
+    if (pos === 'closed' && wasOpen) flashSpark(id);
+
+  } else if (kind === 'coil') {
+    if (value.state === 'on') {
+      startCoilAnim(id);
+    } else {
+      stopCoilAnim(id);
+    }
+  }
+}
+
+function toggleSwitch(id) {
+  const sw = document.getElementById(`sw-${id}`);
+  if (!sw) return;
+  const newPos = sw.classList.contains('up') ? 'down' : 'up';
+  fetch(`/api/action/switch/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ position: newPos }),
+  });
+  sw.className = `switch-body ${newPos}`;
+}
+
+// ─────────────────────────────────────────────
+// Ticker
+// ─────────────────────────────────────────────
+function addTicker(message, ts, isNew) {
+  const el = document.getElementById('ticker-entries');
+  const entry = document.createElement('div');
+  entry.className = 'ticker-entry' + (isNew ? ' new' : '') + (message.startsWith('★') ? ' milestone' : '');
+  const d = ts ? new Date(ts * 1000) : new Date();
+  const time = d.toTimeString().slice(0,8);
+  entry.innerHTML = `<span class="ticker-ts">${time}</span><span class="ticker-msg">${message}</span>`;
+  el.insertBefore(entry, el.firstChild);
+  while (el.children.length > 50) el.removeChild(el.lastChild);
+}
+
+// ─────────────────────────────────────────────
+// SSE
+// ─────────────────────────────────────────────
+function connectSSE() {
+  const es = new EventSource('/events');
+
+  es.addEventListener('instrument_added', e => {
+    const d = JSON.parse(e.data);
+    ensureCard(d.id, d.kind, d.label || d.id, d.section);
+  });
+
+  es.addEventListener('state_changed', e => {
+    const d = JSON.parse(e.data);
+    updateCard(d.id, d.kind, d.value);
+  });
+
+  es.addEventListener('blink', e => {
+    const d = JSON.parse(e.data);
+    blink(d.channel, d.color || 'amber');
+  });
+
+  es.addEventListener('ticker', e => {
+    const d = JSON.parse(e.data);
+    addTicker(d.message, d.ts, true);
+  });
+
+  es.addEventListener('instrument_removed', e => {
+    const { id } = JSON.parse(e.data);
+    stopCoilAnim(id);
+    delete instruments[id];
+    document.getElementById(`card-${id}`)?.remove();
+  });
+
+
+  es.addEventListener('milestone', e => {
+    const d = JSON.parse(e.data);
+    showMilestone(d.message, d.color);
+  });
+
+  es.addEventListener('radio_track', e => {
+    applyRadioData(JSON.parse(e.data));
+  });
+
+  es.addEventListener('radio_dj', e => {
+    const d = JSON.parse(e.data);
+    const badge = document.getElementById('np-dj-badge');
+    if (badge) badge.classList.toggle('active', !!d.connected);
+  });
+
+  es.addEventListener('reset', () => {
+    document.querySelectorAll('.lamp-bulb').forEach(el => el.className = 'lamp-bulb');
+    document.getElementById('ticker-entries').innerHTML = '';
+  });
+
+  es.onerror = () => setTimeout(connectSSE, 3000);
+}
+
+// ─────────────────────────────────────────────
+// Initial state load
+// ─────────────────────────────────────────────
+async function loadState() {
+  const r = await fetch('/api/state');
+  const { instruments: insts, ticker } = await r.json();
+  for (const inst of insts) {
+    ensureCard(inst.id, inst.kind, inst.label || inst.id, inst.section);
+    if (Object.keys(inst.state).length) updateCard(inst.id, inst.kind, inst.state);
+  }
+  for (const t of [...ticker].reverse()) addTicker(t.message, t.ts, false);
+}
+
+// ─────────────────────────────────────────────
+// Clock
+// ─────────────────────────────────────────────
+function tickClock() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toTimeString().slice(0,8);
+}
+
+// ─────────────────────────────────────────────
+// Background effects
+// ─────────────────────────────────────────────
+function startBgEffect(name) {
+  const canvas = document.getElementById('bg-effect');
+  const ctx = canvas.getContext('2d');
+  let running = true;
+  let raf;
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (name === 'gears') {
+    const gears = [
+      { x: canvas.width * 0.15, y: canvas.height * 0.4, r: 80, teeth: 12, speed: 0.0003 },
+      { x: canvas.width * 0.82, y: canvas.height * 0.3, r: 55, teeth: 8,  speed: -0.0005 },
+      { x: canvas.width * 0.7,  y: canvas.height * 0.7, r: 100, teeth: 16, speed: 0.0002 },
+    ];
+    let t = 0;
+    function drawGear(g, angle) {
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      ctx.rotate(angle);
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = '#C8960C';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, g.r * 0.6, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < g.teeth; i++) {
+        const a = (i / g.teeth) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.fillStyle = '#C8960C';
+        ctx.fillRect(g.r * 0.85, -4, g.r * 0.2, 8);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    function frame(ts) {
+      if (!running) return;
+      t = ts;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      gears.forEach(g => drawGear(g, t * g.speed));
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+  } else if (name === 'rain') {
+    const drops = Array.from({length: 80}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      len: 15 + Math.random() * 40,
+      speed: 1.5 + Math.random() * 3,
+      opacity: 0.3 + Math.random() * 0.7,
+    }));
+    function frame() {
+      if (!running) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drops.forEach(d => {
+        ctx.strokeStyle = `rgba(0,229,255,${d.opacity * 0.4})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x, d.y + d.len);
+        ctx.stroke();
+        d.y += d.speed;
+        if (d.y > canvas.height) { d.y = -d.len; d.x = Math.random() * canvas.width; }
+      });
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  return () => { running = false; cancelAnimationFrame(raf); ctx.clearRect(0,0,canvas.width,canvas.height); };
+}
+
+
+
+// ─────────────────────────────────────────────
+// Metrics bar
+// ─────────────────────────────────────────────
+const VEL_HISTORY = Array(30).fill(0);  // 30 samples × 2s = 60s sparkline
+
+function setBar(barId, valId, pct, val) {
+  const bar = document.getElementById(barId);
+  const el  = document.getElementById(valId);
+  if (!bar || !el) return;
+  const p = Math.max(0, Math.min(100, pct));
+  bar.style.width = p + '%';
+  el.textContent = val;
+  const cls = p >= 90 ? 'crit' : p >= 70 ? 'warn' : '';
+  bar.className = 'metric-bar-fill' + (cls ? ' ' + cls : '');
+  el.className  = 'metric-value-big'  + (cls ? ' ' + cls : '');
+}
+
+function drawSparkline(history) {
+  const canvas = document.getElementById('vel-sparkline');
+  if (!canvas) return;
+  canvas.width  = canvas.offsetWidth  || 200;
+  canvas.height = canvas.offsetHeight || 28;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const max = Math.max(...history, 0.1);
+  const style = getComputedStyle(document.documentElement);
+  const color = style.getPropertyValue('--accent-primary').trim() || '#C8960C';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 4;
+  ctx.shadowColor = color;
+  ctx.beginPath();
+  history.forEach((v, i) => {
+    const x = (i / (history.length - 1)) * W;
+    const y = H - (v / max) * (H - 2) - 1;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+async function updateMetrics() {
+  try {
+    const r = await fetch('/api/sysmetrics');
+    const d = await r.json();
+
+    setBar('m-cpu-bar', 'm-cpu-val', d.cpu, d.cpu.toFixed(1));
+    setBar('m-mem-bar', 'm-mem-val', d.mem, d.mem.toFixed(1));
+
+    // velocity
+    VEL_HISTORY.push(d.velocity);
+    VEL_HISTORY.shift();
+    const velEl = document.getElementById('m-vel-val');
+    if (velEl) velEl.textContent = d.velocity.toFixed(1);
+    drawSparkline(VEL_HISTORY);
+
+    // acceleration
+    const accelEl  = document.getElementById('m-accel-val');
+    const accelLbl = document.getElementById('m-accel-label');
+    if (accelEl) accelEl.textContent = (d.accel >= 0 ? '+' : '') + d.accel.toFixed(1);
+    if (accelLbl) {
+      if (d.accel > 0.3)       { accelLbl.textContent = '▲ ramping up';   accelLbl.className = 'metric-delta up'; }
+      else if (d.accel < -0.3) { accelLbl.textContent = '▼ winding down'; accelLbl.className = 'metric-delta down'; }
+      else                     { accelLbl.textContent = '— steady';        accelLbl.className = 'metric-delta'; }
+    }
+  } catch(e) { /* ignore transient failures */ }
+}
+
+// ─────────────────────────────────────────────
+// Milestone flash
+// ─────────────────────────────────────────────
+let milestoneTimer = null;
+function showMilestone(message, color) {
+  const el = document.getElementById('milestone-flash');
+  el.textContent = `★  ${message}  ★`;
+  el.dataset.color = color || 'amber';
+  el.classList.add('active');
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(() => el.classList.remove('active'), 7000);
+}
+
+// ─────────────────────────────────────────────
+// Now Playing + countdown
+// ─────────────────────────────────────────────
+let _npRemaining = 0;      // seconds remaining at last poll
+let _npPollTime  = 0;      // Date.now() when last polled
+let _npInitial   = 0;      // remaining at track start (for progress bar)
+let _npCountdown = null;   // setInterval handle
+
+function fmtSecs(s) {
+  s = Math.max(0, Math.round(s));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function tickCountdown() {
+  const elapsed = (Date.now() - _npPollTime) / 1000;
+  const cur = Math.max(0, _npRemaining - elapsed);
+  const elap = _npInitial > 0 ? (_npInitial - cur) : 0;
+
+  const remEl  = document.getElementById('np-remaining');
+  const elapEl = document.getElementById('np-elapsed');
+  const fill   = document.getElementById('np-progress-fill');
+
+  if (remEl)  remEl.textContent  = fmtSecs(cur);
+  if (elapEl) elapEl.textContent = fmtSecs(elap);
+  if (fill && _npInitial > 0) {
+    fill.style.width = Math.max(0, (cur / _npInitial) * 100) + '%';
+  }
+}
+
+function applyRadioData(d) {
+  const artist  = d.artist || '';
+  const title   = d.title  || '—';
+  const source  = d.source || '';
+  const nextSrc = d.next_source || '';
+  const nextHour = d.next_hour_fmt || '';
+  const dj      = d.dj || {};
+  const newRem  = d.remaining || 0;
+
+  // detect track change: reset progress
+  const trackKey = `${artist}|${title}`;
+  if (trackKey !== applyRadioData._lastTrack) {
+    applyRadioData._lastTrack = trackKey;
+    _npInitial = newRem;
+  }
+  _npRemaining = newRem;
+  _npPollTime  = Date.now();
+
+  const artistEl = document.getElementById('np-artist');
+  const titleEl  = document.getElementById('np-title');
+  const badgeEl  = document.getElementById('np-source-badge');
+  const nextEl   = document.getElementById('np-next-val');
+  const djBadge  = document.getElementById('np-dj-badge');
+  const indicator = document.getElementById('np-playing-indicator');
+
+  if (artistEl) artistEl.textContent = artist || '—';
+  if (titleEl)  titleEl.textContent  = title;
+  if (badgeEl)  badgeEl.textContent  = source || 'AUTODJ';
+  if (nextEl)   nextEl.textContent   = nextSrc ? `${nextSrc} until ${nextHour}` : '—';
+  if (djBadge)  djBadge.classList.toggle('active', !!dj.connected);
+  if (indicator) indicator.classList.toggle('paused', !!dj.connected === false && !artist);
+
+  tickCountdown();
+}
+applyRadioData._lastTrack = '';
+
+async function updateRadio() {
+  try {
+    const r = await fetch('/api/radio');
+    applyRadioData(await r.json());
+  } catch(e) { /* ignore */ }
+}
+
+// start the per-second countdown tick on boot
+function startCountdown() {
+  if (_npCountdown) clearInterval(_npCountdown);
+  _npCountdown = setInterval(tickCountdown, 1000);
+}
+
+// ─────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  setTheme(currentTheme);
+  initBlinken();
+  loadState();
+  connectSSE();
+  tickClock();
+  setInterval(tickClock, 1000);
+  updateMetrics();
+  setInterval(updateMetrics, 2000);
+  updateRadio();
+  setInterval(updateRadio, 5000);
+  startCountdown();
+});
+
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('bg-effect');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (bgStop) bgStop();
+  bgStop = startBgEffect(THEMES[currentTheme]?.bgEffect);
+});
+</script>
+</body>
+</html>

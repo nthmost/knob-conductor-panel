@@ -1,0 +1,102 @@
+/* theme: blade runner */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;600&display=swap');
+
+:root {
+  /* colors */
+  --panel-bg:       #04040f;
+  --panel-surface:  #080818;
+  --panel-border:   #0a1a2a;
+  --accent-primary: #00e5ff;
+  --accent-secondary: #ff6b35;
+  --accent-danger:  #ff003c;
+  --text-primary:   #7ee8fa;
+  --text-dim:       #1a4a5a;
+
+  /* lamp colors */
+  --lamp-off:       #030308;
+  --lamp-on-green:  #00ff9d;
+  --lamp-on-red:    #ff003c;
+  --lamp-on-amber:  #ff6b35;
+  --lamp-on-blue:   #00e5ff;
+  --lamp-glow-green:  0 0 12px #00ff9d, 0 0 24px #00cc7a, 0 0 40px #004422;
+  --lamp-glow-red:    0 0 12px #ff003c, 0 0 24px #cc0030, 0 0 40px #440010;
+  --lamp-glow-amber:  0 0 12px #ff6b35, 0 0 24px #cc4a20;
+  --lamp-glow-blue:   0 0 12px #00e5ff, 0 0 24px #00b8cc, 0 0 40px #003344;
+
+  /* blinken */
+  --blinken-idle:   #030308;
+  --blinken-active: #00e5ff;
+  --blinken-glow:   0 0 6px #00e5ff, 0 0 14px #0088aa, 0 0 28px #003344;
+  --blink-decay:    120ms;
+  --blink-curve:    steps(2, end);
+
+  /* shape — sharp edges */
+  --radius-card:  0px;
+  --radius-lamp:  2px;
+  --radius-led:   1px;
+  --radius-btn:   0px;
+  --border-width: 1px;
+  --border-style: solid;
+  --led-size:     14px;
+  --lamp-size:    48px;
+
+  /* type */
+  --font-ticker: 'Share Tech Mono', monospace;
+  --font-display: 'Rajdhani', sans-serif;
+  --font-label:   'Share Tech Mono', monospace;
+  --font-mono:    'Share Tech Mono', monospace;
+  --letter-spacing-label:   0.18em;
+  --letter-spacing-display: 0.24em;
+  --text-transform-label:   uppercase;
+
+  /* bg */
+  --bg-effect-opacity: 0.15;
+}
+
+/* corner cuts instead of border-radius */
+.card {
+  clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+}
+.blinken-rack {
+  clip-path: polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px);
+}
+
+/* scan line overlay on card surfaces */
+.card::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 4px
+  );
+  z-index: 1;
+}
+
+/* neon flicker on blinken active */
+.blinken-led.on {
+  animation: neon-flicker 0.08s steps(1) 1;
+}
+@keyframes neon-flicker {
+  0%, 80% { opacity: 1; }
+  40%      { opacity: 0.6; }
+}
+
+/* cyan glow on active switch */
+.switch-body.up {
+  border-color: var(--lamp-on-blue);
+  box-shadow: 0 0 12px var(--lamp-on-blue), inset 0 0 8px rgba(0,229,255,0.1);
+}
+
+/* ── knife switch + tesla coil ── */
+:root {
+  --knife-blade:    #4a7a9a;
+  --knife-post:     #0a1a2a;
+  --knife-contact:  #00e5ff;
+  --knife-handle:   #1a2a3a;
+  --knife-clip:     #0088aa;
+  --coil-body:      #00e5ff;
+  --coil-terminal:  #7ee8fa;
+  --coil-base:      #080818;
+  --coil-lightning: rgba(0,229,255,0.95);
+  --coil-glow:      #00e5ff;
+}

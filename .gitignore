@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+panel.db
+panel.db-shm
+panel.db-wal
+panel-env/
+venv/
+.venv/

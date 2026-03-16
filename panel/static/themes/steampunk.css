@@ -1,0 +1,81 @@
+/* theme: steampunk */
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+:root {
+  /* colors */
+  --panel-bg:       #110d07;
+  --panel-surface:  #1c1409;
+  --panel-border:   #4a3518;
+  --accent-primary: #C8960C;
+  --accent-secondary: #8B4513;
+  --accent-danger:  #8B0000;
+  --text-primary:   #d4b483;
+  --text-dim:       #7a6040;
+
+  /* lamp colors */
+  --lamp-off:       #1a1007;
+  --lamp-on-green:  #4a7c3f;
+  --lamp-on-red:    #8B0000;
+  --lamp-on-amber:  #d4820a;
+  --lamp-on-blue:   #1a4a7a;
+  --lamp-glow-green:  0 0 10px #4a7c3f, 0 0 20px #2d5c25;
+  --lamp-glow-red:    0 0 10px #8B0000, 0 0 20px #5a0000;
+  --lamp-glow-amber:  0 0 14px #d4820a, 0 0 28px #9a5a00;
+  --lamp-glow-blue:   0 0 10px #1a4a7a, 0 0 20px #0a2a5a;
+
+  /* blinken */
+  --blinken-idle:   #1a1007;
+  --blinken-active: #d4820a;
+  --blinken-glow:   0 0 8px #d4820a, 0 0 16px #9a5a00;
+  --blink-decay:    380ms;
+  --blink-curve:    ease-out;
+
+  /* shape */
+  --radius-card:  4px;
+  --radius-lamp:  50%;
+  --radius-led:   50%;
+  --radius-btn:   2px;
+  --border-width: 1px;
+  --border-style: solid;
+  --led-size:     14px;
+  --lamp-size:    48px;
+
+  /* type */
+  --font-ticker: 'IM Fell English', Georgia, serif;
+  --font-display: 'Special Elite', serif;
+  --font-label:   'Special Elite', serif;
+  --font-mono:    'Courier Prime', monospace;
+  --letter-spacing-label:   0.08em;
+  --letter-spacing-display: 0.12em;
+  --text-transform-label:   none;
+
+  /* bg */
+  --bg-effect-opacity: 0.06;
+}
+
+/* rivet corners on cards */
+.card::before, .card::after,
+.blinken-rack::before, .blinken-rack::after {
+  content: ''; position: absolute;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-primary); opacity: 0.5;
+}
+.card::before, .blinken-rack::before { top: 4px; left: 4px; }
+.card::after, .blinken-rack::after   { top: 4px; right: 4px; }
+
+/* brass glow on active switch */
+.switch-body.up { border-color: var(--lamp-on-amber); box-shadow: 0 0 8px var(--lamp-on-amber); }
+
+/* ── knife switch + tesla coil ── */
+:root {
+  --knife-blade:    #9a7a2a;
+  --knife-post:     #5a3a10;
+  --knife-contact:  #C8960C;
+  --knife-handle:   #3d1c02;
+  --knife-clip:     #a07020;
+  --coil-body:      #C8960C;
+  --coil-terminal:  #e8d090;
+  --coil-base:      #3d1c02;
+  --coil-lightning: rgba(255,200,100,0.9);
+  --coil-glow:      #d4820a;
+}
