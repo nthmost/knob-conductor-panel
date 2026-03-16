@@ -2,7 +2,7 @@
 
 A real-time radio station monitoring panel built on [Conductor OSS](https://github.com/conductor-oss/conductor) and FastAPI. Designed for display on a dedicated screen at the station — no mouse or keyboard required.
 
-Originally built for **KNOB 90.7 FM** at [Noisebridge](https://www.noisebridge.net/), San Francisco's hackerspace.
+Originally built for **KNOB 87.9 FM** at [Noisebridge](https://www.noisebridge.net/), San Francisco's hackerspace.
 
 ![Blade Runner theme](docs/screenshot.png)
 
