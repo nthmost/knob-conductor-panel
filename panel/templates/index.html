@@ -316,6 +316,7 @@
 </head>
 <body>
 <canvas id="bg-effect"></canvas>
+<canvas id="arc-overlay"></canvas>
 <div id="milestone-flash"></div>
 
 <div id="page">
@@ -1055,6 +1056,88 @@ function startBgEffect(name) {
   return () => { running = false; cancelAnimationFrame(raf); ctx.clearRect(0,0,canvas.width,canvas.height); };
 }
 
+// ─────────────────────────────────────────────
+// Arc storm overlay — Tesla lightning effect
+// ─────────────────────────────────────────────
+let _arcStormActive = false;
+let _arcStormRaf = null;
+let _arcStormIntensity = 0;
+
+function _lightningSegments(x1, y1, x2, y2, roughness, depth) {
+  if (depth === 0) return [[x1, y1, x2, y2]];
+  const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * roughness;
+  const my = (y1 + y2) / 2 + (Math.random() - 0.5) * roughness;
+  return [
+    ..._lightningSegments(x1, y1, mx, my, roughness * 0.55, depth - 1),
+    ..._lightningSegments(mx, my, x2, y2, roughness * 0.55, depth - 1),
+  ];
+}
+
+function _drawBolt(ctx, x1, y1, x2, y2, alpha, color) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const roughness = Math.sqrt(dx*dx + dy*dy) * 0.45;
+  const segs = _lightningSegments(x1, y1, x2, y2, roughness, 6);
+  ctx.save();
+  // glow pass
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 6;
+  ctx.globalAlpha = alpha * 0.15;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  segs.forEach(([ax,ay,bx,by], i) => { if(i===0) ctx.moveTo(ax,ay); ctx.lineTo(bx,by); });
+  ctx.stroke();
+  // core pass
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = alpha * 0.9;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  segs.forEach(([ax,ay,bx,by], i) => { if(i===0) ctx.moveTo(ax,ay); ctx.lineTo(bx,by); });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function startArcStorm(intensity) {
+  _arcStormIntensity = Math.max(0, Math.min(1, intensity));
+  if (_arcStormActive) return;
+  _arcStormActive = true;
+  const cv = document.getElementById('arc-overlay');
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const COLORS = ['#00e5ff', '#7B40FF', '#ffffff', '#00ffaa'];
+  let nextBolt = 0;
+  function frame(ts) {
+    if (!_arcStormActive) return;
+    if (ts >= nextBolt) {
+      ctx.clearRect(0, 0, W, H);
+      const count = 1 + Math.floor(_arcStormIntensity * 2);
+      for (let i = 0; i < count; i++) {
+        const x1 = Math.random() * W;
+        const y1 = Math.random() < 0.5 ? 0 : Math.random() * H * 0.3;
+        const x2 = Math.min(W, Math.max(0, x1 + (Math.random() - 0.5) * W * 0.7));
+        const y2 = Math.min(H, y1 + H * (0.2 + Math.random() * 0.6));
+        const alpha = 0.4 + _arcStormIntensity * 0.5;
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        _drawBolt(ctx, x1, y1, x2, y2, alpha, color);
+      }
+      const minGap = Math.max(150, 2000 - _arcStormIntensity * 1850);
+      nextBolt = ts + minGap + Math.random() * minGap;
+      setTimeout(() => { if (_arcStormActive) ctx.clearRect(0, 0, W, H); }, 80 + Math.random() * 120);
+    }
+    _arcStormRaf = requestAnimationFrame(frame);
+  }
+  _arcStormRaf = requestAnimationFrame(frame);
+}
+
+function stopArcStorm() {
+  if (!_arcStormActive) return;
+  _arcStormActive = false;
+  if (_arcStormRaf) { cancelAnimationFrame(_arcStormRaf); _arcStormRaf = null; }
+  const cv = document.getElementById('arc-overlay');
+  if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+}
 
 
 // ─────────────────────────────────────────────
@@ -1133,6 +1216,13 @@ function applyActivityLevel(velocity, accel) {
     for (let i = 0; i < burst; i++) {
       setTimeout(() => blink(Math.floor(Math.random() * 32), 'amber'), i * 120);
     }
+  }
+
+  // Arc storm: velocity >= 0.5 triggers lightning overlay
+  if (velocity >= 0.5) {
+    startArcStorm(Math.min(1, (velocity - 0.5) / 2.5));
+  } else {
+    stopArcStorm();
   }
 }
 
@@ -1283,6 +1373,17 @@ window.addEventListener('resize', () => {
   canvas.height = window.innerHeight;
   if (bgStop) bgStop();
   bgStop = startBgEffect(THEMES[currentTheme]?.bgEffect);
+  // resize arc overlay too
+  const arcCv = document.getElementById('arc-overlay');
+  if (arcCv) { arcCv.width = window.innerWidth; arcCv.height = window.innerHeight; }
+});
+
+// Debug: press T to fire a test arc storm (5s)
+document.addEventListener('keydown', e => {
+  if (e.key === 't' || e.key === 'T') {
+    startArcStorm(0.8);
+    setTimeout(() => stopArcStorm(), 5000);
+  }
 });
 </script>
 </body>

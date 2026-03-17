@@ -15,6 +15,9 @@ html, body {
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
   opacity: var(--bg-effect-opacity, 0.08);
 }
+#arc-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1;
+}
 
 /* ── page layout ── */
 #page {
