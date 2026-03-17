@@ -103,8 +103,6 @@ _radio_now: dict = {}
 _radio_history: deque = deque(maxlen=RADIO_HISTORY_MAX)
 _dj_state: dict = {"connected": False, "client": None}
 _stream_start_ts: float = 0.0
-_prev_listeners: int = -1
-_prev_genre_active: bool | None = None
 
 async def _liquidsoap_cmd(cmd: str) -> str:
     """Send one command to Liquidsoap telnet, return first response line."""
@@ -127,7 +125,7 @@ async def _liquidsoap_cmd(cmd: str) -> str:
 
 async def radio_poller():
     """Poll radio API; detect track changes and source switches."""
-    global _radio_now, _prev_listeners, _prev_genre_active
+    global _radio_now
     prev_track = None   # "artist|title" key
     prev_source = None
 
@@ -139,25 +137,6 @@ async def radio_poller():
                 )
                 data = resp.json()
                 _radio_now = data
-
-                # Listener count gauge — update only on change
-                listeners = data.get("listeners", 0)
-                if listeners != _prev_listeners:
-                    _prev_listeners = listeners
-                    await _update("gauge", "listeners", {
-                        "value": min(listeners, 100),
-                        "_meta": {"label": "LISTENERS", "section": "SIGNAL"},
-                    })
-
-                # Genre override lamp — update only on change
-                genre_active = data.get("genre_override") is not None
-                if genre_active != _prev_genre_active:
-                    _prev_genre_active = genre_active
-                    await _update("lamp", "genre-override", {
-                        "state": "on" if genre_active else "off",
-                        "color": "green" if genre_active else "amber",
-                        "_meta": {"label": "GENRE MODE", "section": "SIGNAL"},
-                    })
 
                 artist = data.get("artist", "")
                 title  = data.get("title", "")

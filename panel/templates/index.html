@@ -264,6 +264,60 @@
     white-space: nowrap;
   }
   #stream-uptime-ms { font-size: 0.85rem; opacity: 0.6; }
+
+  /* ── Genre override bar ── */
+  #genre-bar {
+    margin-bottom: 8px;
+    background: #04040f;
+    border: 1px solid #0a2a3a;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 0 1.1rem;
+    gap: 1.1rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  #genre-bar.active {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 14px rgba(0,229,255,0.18), inset 0 0 24px rgba(0,229,255,0.06);
+  }
+  #genre-bar-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: #1a4a5a;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    transition: color 0.4s;
+  }
+  #genre-bar.active #genre-bar-tag { color: #7ee8fa; }
+  #genre-bar-name {
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    letter-spacing: 0.12em;
+    color: var(--accent-primary);
+    text-shadow: 0 0 12px var(--accent-primary);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #genre-bar.active #genre-bar-name { opacity: 1; }
+  #genre-bar-sub {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent-secondary);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #genre-bar.active #genre-bar-sub { opacity: 0.75; }
+  .metric-peak {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
@@ -322,10 +376,24 @@
       </div>
       <div class="metric-delta" id="m-accel-label">steady</div>
     </div>
+    <div class="metric-block">
+      <div class="metric-title">LISTENERS</div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="m-listeners-val">--</span>
+      </div>
+      <div class="metric-peak" id="m-listeners-peak">peak: --</div>
+    </div>
     <div class="metric-block" id="uptime-block">
       <div class="metric-title">STREAM UPTIME</div>
       <div id="stream-uptime-display"><span id="stream-uptime-hms">--:--:--</span><span id="stream-uptime-ms">.---</span></div>
     </div>
+  </div>
+
+  <!-- Genre override bar -->
+  <div id="genre-bar">
+    <span id="genre-bar-tag">GENRE OVERRIDE</span>
+    <span id="genre-bar-name"></span>
+    <span id="genre-bar-sub"></span>
   </div>
 
   <!-- Blinken racks -->
@@ -1144,6 +1212,21 @@ function applyRadioData(d) {
   const dj      = d.dj || {};
   const newRem  = d.remaining || 0;
   if (d.stream_start_ts) _streamStartTs = d.stream_start_ts;
+
+  // Listeners metric
+  const listenersEl   = document.getElementById('m-listeners-val');
+  const listenersPeak = document.getElementById('m-listeners-peak');
+  if (listenersEl   && d.listeners    !== undefined) listenersEl.textContent   = d.listeners;
+  if (listenersPeak && d.listener_peak !== undefined) listenersPeak.textContent = 'peak: ' + d.listener_peak;
+
+  // Genre bar
+  const genreBar  = document.getElementById('genre-bar');
+  const genreName = document.getElementById('genre-bar-name');
+  const genreSub  = document.getElementById('genre-bar-sub');
+  const go = d.genre_override;
+  if (genreBar)  genreBar.classList.toggle('active', !!go);
+  if (genreName) genreName.textContent = go ? (go.genre || '') : '';
+  if (genreSub)  genreSub.textContent  = go && go.subgenre ? '/ ' + go.subgenre : '';
 
   // detect track change: reset progress
   const trackKey = `${artist}|${title}`;
