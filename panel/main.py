@@ -252,7 +252,7 @@ _milestone_cooldowns: dict = {}
 MILESTONES = [
     {
         "id": "reactor_online",
-        "message": "REACTOR ONLINE — Main switch closed → Coil energized",
+        "message": "⚡ REACTOR ONLINE — smoke test passed (fingers crossed)",
         "color": "red",
         "steps": [
             {"kind": "knife", "key": "position", "val": "closed"},
@@ -263,7 +263,7 @@ MILESTONES = [
     },
     {
         "id": "systems_nominal",
-        "message": "ALL SYSTEMS NOMINAL — Switch engaged → Status lamp green",
+        "message": "ALL SYSTEMS NOMINAL — no segfaults detected (yet) ✓",
         "color": "green",
         "steps": [
             {"kind": "switch", "key": "position", "val": "up"},
@@ -274,7 +274,7 @@ MILESTONES = [
     },
     {
         "id": "pipeline_active",
-        "message": "PIPELINE ACTIVE — Intake → Processing → Output streaming",
+        "message": "PIPELINE ACTIVE — bits shuffled end-to-end; send halp",
         "color": "amber",
         "steps": [
             {"kind": "lamp",  "key": "state", "val": "on"},
@@ -328,9 +328,20 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
     if v >= 95:
         ms_id = f"gauge_critical_{instrument_id}"
         if time.time() - _milestone_cooldowns.get(ms_id, 0) > 120:
-            await _fire_milestone(
-                ms_id, f"CRITICAL LOAD: {instrument_id} at {int(v)}%", "red"
-            )
+            import random as _r
+            _hax = _r.choice([
+                f"lp0: {instrument_id} ON FIRE — {int(v)}% ( ͡° ͜ʖ ͡°)",
+                f"SEGFAULT IN REALITY — {instrument_id} at {int(v)}% and climbing",
+                f"rm -rf /hope — {instrument_id}: 1337% CAPACITY",
+                f"sudo make it stop — {instrument_id} at {int(v)}%",
+                f"{instrument_id}: IT'S OVER 9000 ({int(v)}%)",
+                f"NULL POINTER EXCEPTION @ {instrument_id} [{int(v)}%]",
+                f"KERNEL PANIC: NOT SYNCING: {instrument_id} = {int(v)}%",
+                f"FIRE EVERYTHING: {instrument_id} exceeds {int(v)}%",
+                f"your princess is in another castle: {instrument_id} overflow",
+                f"0xDEADBEEF — {instrument_id} at {int(v)}% and not slowing down",
+            ])
+            await _fire_milestone(ms_id, _hax, "red")
 
 # ---------------------------------------------------------------------------
 # System metrics (CPU, memory, workflow velocity)
