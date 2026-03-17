@@ -143,7 +143,7 @@ async def radio_poller():
                 if listeners != _prev_listeners:
                     _prev_listeners = listeners
                     await _update("gauge", "listeners", {
-                        "value": min(listeners * 10, 100),
+                        "value": listeners,
                         "_meta": {"label": "LISTENERS", "section": "STREAM"},
                     })
 
