@@ -98,10 +98,55 @@
   }
   #np-remaining { color: #00e5ff; }
 
+  /* ── Stream play button ── */
+  #np-audio { display: none; }
+  #np-play-btn {
+    position: absolute;
+    top: 0.65rem; right: 0.65rem;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1.5px solid #1a4a5a;
+    background: #04040f;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 0;
+  }
+  #np-play-btn::after {
+    content: '';
+    display: block;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 7px 0 7px 13px;
+    border-color: transparent transparent transparent #1a4a5a;
+    margin-left: 3px;
+    transition: border-color 0.2s;
+  }
+  #np-play-btn.playing::after {
+    /* pause icon: two bars */
+    border: none;
+    width: 10px; height: 14px;
+    background: linear-gradient(to right, #00e5ff 0%, #00e5ff 35%, transparent 35%, transparent 65%, #00e5ff 65%, #00e5ff 100%);
+    margin-left: 0;
+  }
+  #np-play-btn:hover {
+    border-color: #00e5ff;
+    box-shadow: 0 0 10px rgba(0,229,255,0.3);
+  }
+  #np-play-btn:hover::after { border-color: transparent transparent transparent #00e5ff; }
+  #np-play-btn.playing {
+    border-color: #00e5ff;
+    animation: btn-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes btn-pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(0,229,255,0.3); }
+    50%       { box-shadow: 0 0 18px rgba(0,229,255,0.7); }
+  }
+
   #np-dj-badge {
     display: none;
     position: absolute;
-    top: 0.75rem; right: 0.75rem;
+    top: 2.4rem; right: 0.75rem;
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem;
     letter-spacing: 0.12em;
@@ -214,8 +259,15 @@
   <div id="panel-header">
     <div>
       <div id="panel-title">◈ KNOB SYSTEMS MONITOR</div>
-      <div id="panel-subtitle">KNOB 90.7 FM — NOISEBRIDGE — <span id="clock"></span></div>
+      <div id="panel-subtitle">KNOB 87.9 FM — NOISEBRIDGE — <span id="clock"></span></div>
     </div>
+    <a href="https://github.com/nthmost/knob-conductor-panel" target="_blank"
+       style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim);
+              text-decoration: none; letter-spacing: 0.08em; opacity: 0.5;
+              transition: opacity 0.2s;"
+       onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">
+      ⌥ github.com/nthmost/knob-conductor-panel
+    </a>
   </div>
 
 
@@ -275,6 +327,8 @@
 
       <!-- Now Playing card -->
       <div id="np-card">
+        <audio id="np-audio" preload="none" src="/stream"></audio>
+        <button id="np-play-btn" onclick="toggleStream()" title="Listen to KNOB 87.9 FM"></button>
         <div id="np-dj-badge">🎙 LIVE DJ ON AIR</div>
         <div id="np-playing-indicator">
           <span class="bar"></span><span class="bar"></span>
@@ -306,7 +360,7 @@
       </div>
 
       <!-- Recently played -->
-      <div id="ticker-label">▸ RECENTLY PLAYED</div>
+      <div id="ticker-label">▸ ACTIVITY MONITOR</div>
       <div id="ticker-entries"></div>
 
     </div>
@@ -1018,6 +1072,23 @@ function tickCountdown() {
   if (fill && _npInitial > 0) {
     fill.style.width = Math.max(0, (cur / _npInitial) * 100) + '%';
   }
+}
+
+
+// ─────────────────────────────────────────────
+// Stream player
+// ─────────────────────────────────────────────
+function toggleStream() {
+  const audio = document.getElementById('np-audio');
+  const btn   = document.getElementById('np-play-btn');
+  if (audio.paused) {
+    audio.play().then(() => btn.classList.add('playing'))
+                .catch(() => {});
+  } else {
+    audio.pause();
+    btn.classList.remove('playing');
+  }
+  audio.onended = () => btn.classList.remove('playing');
 }
 
 function applyRadioData(d) {
