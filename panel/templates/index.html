@@ -360,21 +360,9 @@
       </div>
       <div class="metric-bar-track"><div class="metric-bar-fill" id="m-mem-bar"></div></div>
     </div>
-    <div class="metric-block">
-      <div class="metric-title">WF VELOCITY</div>
-      <div class="metric-readout">
-        <span class="metric-value-big" id="m-vel-val">--</span>
-        <span class="metric-unit">/s</span>
-      </div>
-      <canvas id="vel-sparkline"></canvas>
+    <canvas id="vel-sparkline"></canvas>
     </div>
-    <div class="metric-block">
-      <div class="metric-title">ACCELERATION</div>
-      <div class="metric-readout">
-        <span class="metric-value-big" id="m-accel-val">--</span>
-        <span class="metric-unit">/s²</span>
-      </div>
-      <div class="metric-delta" id="m-accel-label">steady</div>
+    <div class="metric-delta" id="m-accel-label">steady</div>
     </div>
     <div class="metric-block">
       <div class="metric-title">LISTENERS</div>
@@ -1125,23 +1113,34 @@ async function updateMetrics() {
     setBar('m-cpu-bar', 'm-cpu-val', d.cpu, d.cpu.toFixed(1));
     setBar('m-mem-bar', 'm-mem-val', d.mem, d.mem.toFixed(1));
 
-    // velocity
-    VEL_HISTORY.push(d.velocity);
-    VEL_HISTORY.shift();
-    const velEl = document.getElementById('m-vel-val');
-    if (velEl) velEl.textContent = d.velocity.toFixed(1);
-    drawSparkline(VEL_HISTORY);
-
-    // acceleration
-    const accelEl  = document.getElementById('m-accel-val');
-    const accelLbl = document.getElementById('m-accel-label');
-    if (accelEl) accelEl.textContent = (d.accel >= 0 ? '+' : '') + d.accel.toFixed(1);
-    if (accelLbl) {
-      if (d.accel > 0.3)       { accelLbl.textContent = '▲ ramping up';   accelLbl.className = 'metric-delta up'; }
-      else if (d.accel < -0.3) { accelLbl.textContent = '▼ winding down'; accelLbl.className = 'metric-delta down'; }
-      else                     { accelLbl.textContent = '— steady';        accelLbl.className = 'metric-delta'; }
-    }
+    applyActivityLevel(d.velocity, d.accel);
   } catch(e) { /* ignore transient failures */ }
+}
+
+// ─────────────────────────────────────────────
+// Activity level — transmute WF velocity + accel into widget liveliness
+// ─────────────────────────────────────────────
+function applyActivityLevel(velocity, accel) {
+  // Blinken decay: faster workflows → snappier flashes (80ms–320ms range)
+  const decayMs = Math.round(Math.max(80, 320 - velocity * 55));
+  document.documentElement.style.setProperty('--blink-decay', decayMs + 'ms');
+
+  // Random spontaneous LED pulses proportional to velocity
+  const pulses = Math.min(Math.floor(velocity * 1.5), 6);
+  const colors = ['amber', 'green', 'blue', 'amber', 'amber', 'red'];
+  for (let i = 0; i < pulses; i++) {
+    const ch = Math.floor(Math.random() * 32);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    setTimeout(() => blink(ch, color), Math.random() * 1800);
+  }
+
+  // Positive acceleration: burst of 2–4 extra flashes on random channels
+  if (accel > 0.5) {
+    const burst = Math.min(Math.ceil(accel * 2), 4);
+    for (let i = 0; i < burst; i++) {
+      setTimeout(() => blink(Math.floor(Math.random() * 32), 'amber'), i * 120);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────
