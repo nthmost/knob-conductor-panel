@@ -331,7 +331,7 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
             import random as _r
             _hax = _r.choice([
                 f"lp0: {instrument_id} ON FIRE — {int(v)}% ( ͡° ͜ʖ ͡°)",
-                "SEGFAULT IN REALITY",
+                f"REALITY SEGFAULT — magnitude {round(_r.uniform(6.0, 9.9), 1)} on the Richter scale",
                 "GREETINGS PROFESSOR FALKEN — thermonuclear option selected",
                 "system hangry: sudo make me a sandwich",
                 "HACK THE PLANET",
