@@ -256,59 +256,61 @@
   .ticker-entry.new .ticker-msg { color: #00e5ff; }
   #uptime-block { min-width: 180px; }
 
-  /* ── Genre override bar ── */
-  #genre-bar {
-    margin-bottom: 8px;
-    background: #04040f;
-    border: 1px solid #0a2a3a;
-    height: 40px;
-    display: flex;
+  /* ── Genre mode card (chunky industrial status button) ── */
+  #card-genre-mode {
+    flex: 1 1 100%;
+    flex-direction: row;
     align-items: center;
-    padding: 0 1.1rem;
-    gap: 1.1rem;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.4s, box-shadow 0.4s;
+    gap: 1rem;
+    min-height: 64px;
+    padding: 0.6rem 1.1rem;
+    border-width: 2px;
+    cursor: default;
+    transition: border-color 0.4s, box-shadow 0.4s, background 0.4s;
   }
-  #genre-bar.active {
+  #card-genre-mode.active {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 14px rgba(0,229,255,0.18), inset 0 0 24px rgba(0,229,255,0.06);
+    background: rgba(0,229,255,0.04);
+    box-shadow: 0 0 18px rgba(0,229,255,0.15), inset 0 0 28px rgba(0,229,255,0.05);
   }
-  #genre-bar-tag {
+  #genre-mode-pip {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border-radius: 2px;
+    background: var(--lamp-off);
+    border: 1px solid var(--panel-border);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  #card-genre-mode.active #genre-mode-pip {
+    background: var(--lamp-on-green);
+    box-shadow: var(--lamp-glow-green);
+  }
+  #genre-mode-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  #genre-mode-label {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.18em;
-    color: #1a4a5a;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
     text-transform: uppercase;
-    flex-shrink: 0;
-    transition: color 0.4s;
   }
-  #genre-bar.active #genre-bar-tag { color: #7ee8fa; }
-  #genre-bar-name {
-    font-family: var(--font-mono);
-    font-size: 1.15rem;
-    letter-spacing: 0.12em;
+  #genre-mode-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    transition: color 0.4s, text-shadow 0.4s;
+  }
+  #card-genre-mode.active #genre-mode-name {
     color: var(--accent-primary);
     text-shadow: 0 0 12px var(--accent-primary);
-    opacity: 0;
-    transition: opacity 0.4s;
   }
-  #genre-bar.active #genre-bar-name { opacity: 1; }
-  #genre-bar-sub {
+  #genre-mode-sub {
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--accent-secondary);
     opacity: 0;
     transition: opacity 0.4s;
   }
-  #genre-bar.active #genre-bar-sub { opacity: 0.75; }
-  .metric-peak {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.08em;
-    margin-top: 2px;
-  }
+  #card-genre-mode.active #genre-mode-sub { opacity: 0.8; }
 </style>
 </head>
 <body>
@@ -359,14 +361,6 @@
       <div class="metric-bar-track"><div class="metric-bar-fill" id="m-uptime-bar" style="width:100%;opacity:0.18"></div></div>
     </div>
   </div>
-
-  <!-- Genre override bar -->
-  <div id="genre-bar">
-    <span id="genre-bar-tag">GENRE OVERRIDE</span>
-    <span id="genre-bar-name"></span>
-    <span id="genre-bar-sub"></span>
-  </div>
-
   <!-- Blinken racks -->
   <div id="blinken-section">
     <div class="blinken-rack" id="rack-0">
@@ -424,6 +418,21 @@
       <div id="ticker-entries"></div>
 
     </div>
+    <!-- STREAM section: genre card + dynamic Conductor instruments -->
+    <div class="section-box" id="section-box-stream">
+      <div class="section-box-title">STREAM</div>
+      <div class="section-box-cards" id="stream-cards">
+        <div class="card" id="card-genre-mode">
+          <div id="genre-mode-pip"></div>
+          <div id="genre-mode-body">
+            <div id="genre-mode-label">GENRE MODE</div>
+            <div id="genre-mode-name">—</div>
+            <div id="genre-mode-sub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="instruments-grid"></div>
   </div>
 
@@ -1195,14 +1204,14 @@ function applyRadioData(d) {
   const newRem  = d.remaining || 0;
   if (d.stream_start_ts) _streamStartTs = d.stream_start_ts;
 
-  // Genre bar
-  const genreBar  = document.getElementById('genre-bar');
-  const genreName = document.getElementById('genre-bar-name');
-  const genreSub  = document.getElementById('genre-bar-sub');
+  // Genre mode card
+  const genreCard = document.getElementById('card-genre-mode');
+  const genreName = document.getElementById('genre-mode-name');
+  const genreSub  = document.getElementById('genre-mode-sub');
   const go = d.genre_override;
-  if (genreBar)  genreBar.classList.toggle('active', !!go);
-  if (genreName) genreName.textContent = go ? (go.genre || '') : '';
-  if (genreSub)  genreSub.textContent  = go && go.subgenre ? '/ ' + go.subgenre : '';
+  if (genreCard) genreCard.classList.toggle('active', !!go);
+  if (genreName) genreName.textContent = go ? (go.genre || '—') : '—';
+  if (genreSub)  genreSub.textContent  = go && go.subgenre ? go.subgenre : '';
 
   // detect track change: reset progress
   const trackKey = `${artist}|${title}`;
@@ -1250,6 +1259,11 @@ function startCountdown() {
 window.addEventListener('DOMContentLoaded', () => {
   setTheme(currentTheme);
   initBlinken();
+  // Pre-register hardcoded STREAM section so dynamic instruments join it
+  (function() {
+    const box = document.getElementById('section-box-stream');
+    if (box) sectionBoxes['STREAM'] = { box, cardsEl: document.getElementById('stream-cards') };
+  })();
   loadState();
   connectSSE();
   tickClock();
