@@ -98,18 +98,15 @@ wf_stream_pulse = {
 # ─────────────────────────────────────────────
 wf_radio_sync = {
     "name": "knob-radio-sync", "version": 1,
-    "description": "Poll radio API, post queue depth + source lamp",
+    "description": "Poll radio API, post source lamp",
     "tasks": [
         http_task("get_nowplaying", f"{RADIO}/api/now-playing", "GET"),
         fork("radio_display", [
-            gauge("post_queue", "queue-depth",
-                  "${get_nowplaying.output.response.body.queue_depth}",
-                  "Queue Depth", "STREAM"),
             lamp("post_source_lamp", "source-active", "on", "green",
                  "Source Active", "STREAM"),
             blink("blink_radio", 1, "green"),
         ]),
-        join("radio_display", ["post_queue", "post_source_lamp", "blink_radio"]),
+        join("radio_display", ["post_source_lamp", "blink_radio"]),
     ]
 }
 
