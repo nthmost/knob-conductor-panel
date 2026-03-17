@@ -333,7 +333,7 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
                 f"lp0: {instrument_id} ON FIRE — {int(v)}% ( ͡° ͜ʖ ͡°)",
                 "SEGFAULT IN REALITY",
                 "GREETINGS PROFESSOR FALKEN — thermonuclear option selected",
-                "sudo make it stop",
+                "system hangry: sudo make me a sandwich",
                 "HACK THE PLANET",
                 "KERNEL PANIC: GENERAL FAULT — all privates unresponsive",
                 "MESS WITH THE BEST, DIE LIKE THE REST",
