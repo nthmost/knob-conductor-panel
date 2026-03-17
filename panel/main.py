@@ -332,14 +332,15 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
             _hax = _r.choice([
                 f"lp0: {instrument_id} ON FIRE — {int(v)}% ( ͡° ͜ʖ ͡°)",
                 f"SEGFAULT IN REALITY — {instrument_id} at {int(v)}% and climbing",
-                f"rm -rf /hope — {instrument_id}: 1337% CAPACITY",
+                f"GREETINGS PROFESSOR FALKEN — {instrument_id} proposes thermonuclear war",
                 f"sudo make it stop — {instrument_id} at {int(v)}%",
-                f"{instrument_id}: IT'S OVER 9000 ({int(v)}%)",
-                f"NULL POINTER EXCEPTION @ {instrument_id} [{int(v)}%]",
+                f"{instrument_id}: RUNNING AT 1337% — HACK THE PLANET",
+                f"ZERO COOL WAS HERE — {instrument_id} toasted at {int(v)}%",
                 f"KERNEL PANIC: NOT SYNCING: {instrument_id} = {int(v)}%",
-                f"FIRE EVERYTHING: {instrument_id} exceeds {int(v)}%",
-                f"your princess is in another castle: {instrument_id} overflow",
-                f"0xDEADBEEF — {instrument_id} at {int(v)}% and not slowing down",
+                f"MESS WITH THE BEST, DIE LIKE THE REST — {instrument_id} at {int(v)}%",
+                f"{instrument_id} OVERFLOW: your princess is in another castle",
+                f"0xDEADBEEF identified in {instrument_id} — CORONER NOTIFIED",
+                f"A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO COMPUTE. [{instrument_id}]",
             ])
             await _fire_milestone(ms_id, _hax, "red")
 
