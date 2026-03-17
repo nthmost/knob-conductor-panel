@@ -27,6 +27,7 @@ LIQUIDSOAP_HOST    = os.getenv("LIQUIDSOAP_HOST", "localhost")
 LIQUIDSOAP_PORT    = int(os.getenv("LIQUIDSOAP_PORT", "1234"))
 RADIO_HISTORY_MAX  = 50
 TICKER_MAX         = 200
+ICECAST_URL        = os.getenv("ICECAST_URL", "http://localhost:8000/status-json.xsl")
 
 # ---------------------------------------------------------------------------
 # Database
@@ -101,6 +102,9 @@ broker = SSEBroker()
 _radio_now: dict = {}
 _radio_history: deque = deque(maxlen=RADIO_HISTORY_MAX)
 _dj_state: dict = {"connected": False, "client": None}
+_stream_start_ts: float = 0.0
+_prev_listeners: int = -1
+_prev_genre_active: bool | None = None
 
 async def _liquidsoap_cmd(cmd: str) -> str:
     """Send one command to Liquidsoap telnet, return first response line."""
@@ -123,7 +127,7 @@ async def _liquidsoap_cmd(cmd: str) -> str:
 
 async def radio_poller():
     """Poll radio API; detect track changes and source switches."""
-    global _radio_now
+    global _radio_now, _prev_listeners, _prev_genre_active
     prev_track = None   # "artist|title" key
     prev_source = None
 
@@ -135,6 +139,25 @@ async def radio_poller():
                 )
                 data = resp.json()
                 _radio_now = data
+
+                # Listener count gauge — update only on change
+                listeners = data.get("listeners", 0)
+                if listeners != _prev_listeners:
+                    _prev_listeners = listeners
+                    await _update("gauge", "listeners", {
+                        "value": min(listeners, 100),
+                        "_meta": {"label": "LISTENERS", "section": "SIGNAL"},
+                    })
+
+                # Genre override lamp — update only on change
+                genre_active = data.get("genre_override") is not None
+                if genre_active != _prev_genre_active:
+                    _prev_genre_active = genre_active
+                    await _update("lamp", "genre-override", {
+                        "state": "on" if genre_active else "off",
+                        "color": "green" if genre_active else "amber",
+                        "_meta": {"label": "GENRE MODE", "section": "SIGNAL"},
+                    })
 
                 artist = data.get("artist", "")
                 title  = data.get("title", "")
@@ -212,6 +235,24 @@ async def dj_watcher():
             await broker.broadcast("radio_dj", {"connected": False})
 
         await asyncio.sleep(5)
+
+async def icecast_poller():
+    """Poll Icecast once on startup then every 30s to get stream start time."""
+    global _stream_start_ts
+    from datetime import datetime
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                resp = await client.get(ICECAST_URL, timeout=3.0)
+                data = resp.json()
+                src = data.get("icestats", {}).get("source", {})
+                iso = src.get("stream_start_iso8601")
+                if iso:
+                    _stream_start_ts = datetime.fromisoformat(iso).timestamp()
+            except Exception:
+                pass
+            await asyncio.sleep(30)
+
 
 # ---------------------------------------------------------------------------
 # Milestone detection
@@ -349,6 +390,7 @@ async def lifespan(app: FastAPI):
     if RADIO_API_URL:
         asyncio.create_task(radio_poller())
         asyncio.create_task(dj_watcher())
+        asyncio.create_task(icecast_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -432,7 +474,7 @@ async def events(request: Request):
 
 @app.get("/api/radio")
 async def get_radio():
-    return {**_radio_now, "dj": _dj_state}
+    return {**_radio_now, "dj": _dj_state, "stream_start_ts": _stream_start_ts}
 
 @app.get("/api/radio/history")
 async def get_radio_history():
