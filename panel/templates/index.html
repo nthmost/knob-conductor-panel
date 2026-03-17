@@ -915,6 +915,11 @@ function connectSSE() {
   es.addEventListener('milestone', e => {
     const d = JSON.parse(e.data);
     showMilestone(d.message, d.color);
+    // Critical events trigger arc storm for 10 seconds
+    if (d.color === 'red') {
+      startArcStorm(1.0);
+      setTimeout(() => stopArcStorm(), 10000);
+    }
   });
 
   es.addEventListener('radio_track', e => {
