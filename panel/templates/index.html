@@ -254,16 +254,7 @@
     line-height: 1.3;
   }
   .ticker-entry.new .ticker-msg { color: #00e5ff; }
-  #uptime-block { min-width: 160px; }
-  #stream-uptime-display {
-    font-family: var(--font-mono);
-    font-size: 1.35rem;
-    color: var(--accent-primary);
-    text-shadow: 0 0 10px var(--accent-primary), 0 0 4px var(--accent-primary);
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-  }
-  #stream-uptime-ms { font-size: 0.85rem; opacity: 0.6; }
+  #uptime-block { min-width: 180px; }
 
   /* ── Genre override bar ── */
   #genre-bar {
@@ -360,16 +351,14 @@
       </div>
       <div class="metric-bar-track"><div class="metric-bar-fill" id="m-mem-bar"></div></div>
     </div>
-    <div class="metric-block">
-      <div class="metric-title">LISTENERS</div>
-      <div class="metric-readout">
-        <span class="metric-value-big" id="m-listeners-val">--</span>
-      </div>
-      <div class="metric-peak" id="m-listeners-peak">peak: --</div>
+    <div class="metric-peak" id="m-listeners-peak">peak: --</div>
     </div>
     <div class="metric-block" id="uptime-block">
       <div class="metric-title">STREAM UPTIME</div>
-      <div id="stream-uptime-display"><span id="stream-uptime-hms">--:--:--</span><span id="stream-uptime-ms">.---</span></div>
+      <div class="metric-readout">
+        <span class="metric-value-big" id="stream-uptime-hms">--:--:--</span><span class="metric-unit" id="stream-uptime-ms">.---</span>
+      </div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="m-uptime-bar" style="width:100%;opacity:0.18"></div></div>
     </div>
   </div>
 
@@ -1207,12 +1196,6 @@ function applyRadioData(d) {
   const dj      = d.dj || {};
   const newRem  = d.remaining || 0;
   if (d.stream_start_ts) _streamStartTs = d.stream_start_ts;
-
-  // Listeners metric
-  const listenersEl   = document.getElementById('m-listeners-val');
-  const listenersPeak = document.getElementById('m-listeners-peak');
-  if (listenersEl   && d.listeners    !== undefined) listenersEl.textContent   = d.listeners;
-  if (listenersPeak && d.listener_peak !== undefined) listenersPeak.textContent = 'peak: ' + d.listener_peak;
 
   // Genre bar
   const genreBar  = document.getElementById('genre-bar');

@@ -103,6 +103,7 @@ _radio_now: dict = {}
 _radio_history: deque = deque(maxlen=RADIO_HISTORY_MAX)
 _dj_state: dict = {"connected": False, "client": None}
 _stream_start_ts: float = 0.0
+_prev_listeners: int = -1
 
 async def _liquidsoap_cmd(cmd: str) -> str:
     """Send one command to Liquidsoap telnet, return first response line."""
@@ -125,7 +126,7 @@ async def _liquidsoap_cmd(cmd: str) -> str:
 
 async def radio_poller():
     """Poll radio API; detect track changes and source switches."""
-    global _radio_now
+    global _radio_now, _prev_listeners
     prev_track = None   # "artist|title" key
     prev_source = None
 
@@ -137,6 +138,14 @@ async def radio_poller():
                 )
                 data = resp.json()
                 _radio_now = data
+
+                listeners = data.get("listeners", 0)
+                if listeners != _prev_listeners:
+                    _prev_listeners = listeners
+                    await _update("gauge", "listeners", {
+                        "value": min(listeners * 10, 100),
+                        "_meta": {"label": "LISTENERS", "section": "STREAM"},
+                    })
 
                 artist = data.get("artist", "")
                 title  = data.get("title", "")
