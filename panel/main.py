@@ -522,8 +522,8 @@ def ensure_instrument(conn, id: str, kind: str, meta: dict):
             (id, kind, meta.get("label", id), meta.get("section"), meta.get("conductor_ref"))
         )
         return True
-    # Update label/section if provided in _meta
-    updates = {}
+    # Update kind/label/section if changed
+    updates = {"kind": kind}
     if "label" in meta:
         updates["label"] = meta["label"]
     if "section" in meta:
