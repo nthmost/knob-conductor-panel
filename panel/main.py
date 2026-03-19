@@ -246,11 +246,12 @@ async def icecast_poller():
 # Site health monitoring
 # ---------------------------------------------------------------------------
 
-SITE_CHECK_URLS = {
+SITE_MONITORS = {
     "noisebridge-net": {
         "url": "https://www.noisebridge.net/",
         "label": "noisebridge.net",
         "section": "NB INFRA",
+        "timeout_ms": 5000,  # gauge reads 0–100% of this range
     },
 }
 SITE_CHECK_INTERVAL = 60  # seconds
@@ -258,35 +259,41 @@ SITE_CHECK_INTERVAL = 60  # seconds
 _site_status: dict[str, bool] = {}  # id → last known up/down
 
 async def site_health_poller():
-    """Poll monitored sites, post lamp + ticker on state change."""
+    """Poll monitored sites, post response-time gauge + ticker on state change."""
     async with httpx.AsyncClient(follow_redirects=True) as client:
         while True:
-            for site_id, cfg in SITE_CHECK_URLS.items():
+            for site_id, cfg in SITE_MONITORS.items():
+                timeout_ms = cfg.get("timeout_ms", 5000)
                 up = False
+                response_ms = timeout_ms  # default to max (down)
                 try:
-                    resp = await client.get(cfg["url"], timeout=10.0)
+                    t0 = time.time()
+                    resp = await client.get(cfg["url"], timeout=timeout_ms / 1000)
+                    response_ms = (time.time() - t0) * 1000
                     up = resp.status_code < 500
+                    if not up:
+                        response_ms = timeout_ms
                 except Exception:
                     up = False
+                    response_ms = timeout_ms
 
-                was_up = _site_status.get(site_id)
-                _site_status[site_id] = up
-
-                color = "green" if up else "red"
-                state = "on" if up else "on"  # lamp always on, color shows status
-                await _update("lamp", site_id, {
-                    "state": state, "color": color,
+                # Gauge value: response time as percentage of timeout ceiling
+                gauge_pct = min(100, round(response_ms / timeout_ms * 100, 1))
+                await _update("gauge", site_id, {
+                    "value": gauge_pct,
                     "_meta": {"label": cfg["label"], "section": cfg["section"]},
                 })
 
                 # Ticker on state transitions
+                was_up = _site_status.get(site_id)
+                _site_status[site_id] = up
                 if was_up is not None and up != was_up:
                     if up:
-                        msg = f"✅  {cfg['label']} is back UP"
+                        msg = f"✅  {cfg['label']} is back UP ({int(response_ms)}ms)"
                     else:
                         msg = f"🔴  {cfg['label']} is DOWN"
                     with db_connect() as conn:
-                        add_ticker(conn, msg, "HEALTH")
+                        add_ticker(conn, msg, "INFRA")
                         conn.commit()
                     await broker.broadcast("ticker", {
                         "message": msg, "source": "INFRA", "ts": time.time(),
