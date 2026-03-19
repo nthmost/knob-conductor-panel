@@ -166,8 +166,8 @@ wf_signal_route = {
     "name": "knob-signal-route", "version": 1,
     "description": "Simulated audio signal routing through node chain",
     "tasks": [
-        lamp("route_input", "route-input", "on", "amber",
-             "Input", "AUDIO ROUTING"),
+        lamp("route_input", "route-autodj", "on", "green",
+             "AUTODJ", "AUDIO ROUTING"),
         fork("route_nodes", [
             lamp("route_node_a", "route-node-a", "on", "blue",
                  "Node A", "AUDIO ROUTING"),
@@ -226,7 +226,7 @@ wf_storm = {
             lamp("storm_tx_c", "tx-charlie", "on", "amber", "TX Charlie", "TRANSMITTERS"),
             lamp("storm_tx_d", "tx-delta",   "on", "amber", "TX Delta",   "TRANSMITTERS"),
             # routing
-            lamp("storm_ri",  "route-input",  "on", "red", "Input",  "AUDIO ROUTING"),
+            lamp("storm_ri",  "route-autodj",  "on", "red", "AUTODJ",  "AUDIO ROUTING"),
             lamp("storm_rna", "route-node-a", "on", "red", "Node A", "AUDIO ROUTING"),
             lamp("storm_rnb", "route-node-b", "on", "red", "Node B", "AUDIO ROUTING"),
             lamp("storm_ro",  "route-output", "on", "red", "Output", "AUDIO ROUTING"),
@@ -248,7 +248,7 @@ wf_storm = {
             lamp("rec_tx_b", "tx-bravo",   "on", "green", "TX Bravo",   "TRANSMITTERS"),
             lamp("rec_tx_c", "tx-charlie", "on", "blue",  "TX Charlie", "TRANSMITTERS"),
             lamp("rec_tx_d", "tx-delta",   "on", "blue",  "TX Delta",   "TRANSMITTERS"),
-            lamp("rec_ri",  "route-input",  "on", "amber", "Input",  "AUDIO ROUTING"),
+            lamp("rec_ri",  "route-autodj",  "on", "green", "AUTODJ",  "AUDIO ROUTING"),
             lamp("rec_ro",  "route-output", "on", "green", "Output", "AUDIO ROUTING"),
             gauge("rec_snr",  "snr-meter",      85, "SNR",              "RF MONITORING"),
             gauge("rec_mod",  "modulation-idx", 75, "Modulation Index", "RF MONITORING"),
