@@ -273,7 +273,7 @@ schedules = [
 print("=== Registering workflows ===")
 for wf in workflows:
     wf.setdefault("ownerEmail", "knob@noisebridge.net")
-    r = api("POST", "/api/metadata/workflow", wf)
+    r = api("PUT", "/api/metadata/workflow", wf)
     status = "OK" if r is not None else "FAIL"
     print(f"  [{status}] {wf['name']}")
     time.sleep(0.2)
