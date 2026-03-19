@@ -85,11 +85,9 @@ wf_stream_pulse = {
             gauge("post_bitrate", "stream-bitrate",
                   "${get_icecast.output.response.body.icestats.source.audio_bitrate}",
                   "Bitrate (bps)", "STREAM"),
-            lamp("post_stream_lamp", "stream-status", "on", "blue",
-                 "Stream Status", "STREAM"),
             blink("blink_stream", 0, "blue"),
         ]),
-        join("stream_display", ["post_bitrate", "post_stream_lamp", "blink_stream"]),
+        join("stream_display", ["post_bitrate", "blink_stream"]),
     ]
 }
 
@@ -101,12 +99,7 @@ wf_radio_sync = {
     "description": "Poll radio API, post source lamp",
     "tasks": [
         http_task("get_nowplaying", f"{RADIO}/api/now-playing", "GET"),
-        fork("radio_display", [
-            lamp("post_source_lamp", "source-active", "on", "green",
-                 "Source Active", "STREAM"),
-            blink("blink_radio", 1, "green"),
-        ]),
-        join("radio_display", ["post_source_lamp", "blink_radio"]),
+        blink("blink_radio", 1, "green"),
     ]
 }
 
@@ -167,7 +160,7 @@ wf_signal_route = {
     "description": "Simulated audio signal routing through node chain",
     "tasks": [
         lamp("route_input", "route-autodj", "on", "green",
-             "AUTODJ", "AUDIO ROUTING"),
+             "AUTODJ", "STREAM"),
         fork("route_nodes", [
             lamp("route_node_a", "route-node-a", "on", "blue",
                  "Node A", "AUDIO ROUTING"),
@@ -226,7 +219,7 @@ wf_storm = {
             lamp("storm_tx_c", "tx-charlie", "on", "amber", "TX Charlie", "TRANSMITTERS"),
             lamp("storm_tx_d", "tx-delta",   "on", "amber", "TX Delta",   "TRANSMITTERS"),
             # routing
-            lamp("storm_ri",  "route-autodj",  "on", "red", "AUTODJ",  "AUDIO ROUTING"),
+            lamp("storm_ri",  "route-autodj",  "on", "red", "AUTODJ",  "STREAM"),
             lamp("storm_rna", "route-node-a", "on", "red", "Node A", "AUDIO ROUTING"),
             lamp("storm_rnb", "route-node-b", "on", "red", "Node B", "AUDIO ROUTING"),
             lamp("storm_ro",  "route-output", "on", "red", "Output", "AUDIO ROUTING"),
@@ -248,7 +241,7 @@ wf_storm = {
             lamp("rec_tx_b", "tx-bravo",   "on", "green", "TX Bravo",   "TRANSMITTERS"),
             lamp("rec_tx_c", "tx-charlie", "on", "blue",  "TX Charlie", "TRANSMITTERS"),
             lamp("rec_tx_d", "tx-delta",   "on", "blue",  "TX Delta",   "TRANSMITTERS"),
-            lamp("rec_ri",  "route-autodj",  "on", "green", "AUTODJ",  "AUDIO ROUTING"),
+            lamp("rec_ri",  "route-autodj",  "on", "green", "AUTODJ",  "STREAM"),
             lamp("rec_ro",  "route-output", "on", "green", "Output", "AUDIO ROUTING"),
             gauge("rec_snr",  "snr-meter",      85, "SNR",              "RF MONITORING"),
             gauge("rec_mod",  "modulation-idx", 75, "Modulation Index", "RF MONITORING"),

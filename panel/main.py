@@ -210,14 +210,14 @@ async def dj_watcher():
                 "message": msg, "source": "DJ", "ts": time.time(),
             })
             await broker.broadcast("radio_dj", {"connected": True, "client": status})
-            # AUDIO ROUTING lamps: LIVE DJ on, AUTODJ off
+            # STREAM lamps: LIVE DJ on, AUTODJ off
             await _update("lamp", "route-livedj", {
                 "state": "on", "color": "red",
-                "_meta": {"label": "LIVE DJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "LIVE DJ", "section": "STREAM"},
             })
             await _update("lamp", "route-autodj", {
                 "state": "off", "color": "green",
-                "_meta": {"label": "AUTODJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "AUTODJ", "section": "STREAM"},
             })
 
         elif not is_connected and was_connected:
@@ -230,14 +230,14 @@ async def dj_watcher():
                 "message": msg, "source": "DJ", "ts": time.time(),
             })
             await broker.broadcast("radio_dj", {"connected": False})
-            # AUDIO ROUTING lamps: LIVE DJ off, AUTODJ on
+            # STREAM lamps: LIVE DJ off, AUTODJ on
             await _update("lamp", "route-livedj", {
                 "state": "off", "color": "red",
-                "_meta": {"label": "LIVE DJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "LIVE DJ", "section": "STREAM"},
             })
             await _update("lamp", "route-autodj", {
                 "state": "on", "color": "green",
-                "_meta": {"label": "AUTODJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "AUTODJ", "section": "STREAM"},
             })
 
         elif not is_connected and not was_connected and _site_status.get("_dj_init") is None:
@@ -245,11 +245,11 @@ async def dj_watcher():
             _site_status["_dj_init"] = True
             await _update("lamp", "route-autodj", {
                 "state": "on", "color": "green",
-                "_meta": {"label": "AUTODJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "AUTODJ", "section": "STREAM"},
             })
             await _update("lamp", "route-livedj", {
                 "state": "off", "color": "red",
-                "_meta": {"label": "LIVE DJ", "section": "AUDIO ROUTING"},
+                "_meta": {"label": "LIVE DJ", "section": "STREAM"},
             })
 
         await asyncio.sleep(5)
