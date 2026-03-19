@@ -243,6 +243,59 @@ async def icecast_poller():
 
 
 # ---------------------------------------------------------------------------
+# Site health monitoring
+# ---------------------------------------------------------------------------
+
+SITE_CHECK_URLS = {
+    "noisebridge-net": {
+        "url": "https://www.noisebridge.net/",
+        "label": "noisebridge.net",
+        "section": "SITE HEALTH",
+    },
+}
+SITE_CHECK_INTERVAL = 60  # seconds
+
+_site_status: dict[str, bool] = {}  # id → last known up/down
+
+async def site_health_poller():
+    """Poll monitored sites, post lamp + ticker on state change."""
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        while True:
+            for site_id, cfg in SITE_CHECK_URLS.items():
+                up = False
+                try:
+                    resp = await client.get(cfg["url"], timeout=10.0)
+                    up = resp.status_code < 500
+                except Exception:
+                    up = False
+
+                was_up = _site_status.get(site_id)
+                _site_status[site_id] = up
+
+                color = "green" if up else "red"
+                state = "on" if up else "on"  # lamp always on, color shows status
+                await _update("lamp", site_id, {
+                    "state": state, "color": color,
+                    "_meta": {"label": cfg["label"], "section": cfg["section"]},
+                })
+
+                # Ticker on state transitions
+                if was_up is not None and up != was_up:
+                    if up:
+                        msg = f"✅  {cfg['label']} is back UP"
+                    else:
+                        msg = f"🔴  {cfg['label']} is DOWN"
+                    with db_connect() as conn:
+                        add_ticker(conn, msg, "HEALTH")
+                        conn.commit()
+                    await broker.broadcast("ticker", {
+                        "message": msg, "source": "HEALTH", "ts": time.time(),
+                    })
+
+            await asyncio.sleep(SITE_CHECK_INTERVAL)
+
+
+# ---------------------------------------------------------------------------
 # Milestone detection
 # ---------------------------------------------------------------------------
 
@@ -404,6 +457,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(radio_poller())
         asyncio.create_task(dj_watcher())
         asyncio.create_task(icecast_poller())
+    asyncio.create_task(site_health_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
