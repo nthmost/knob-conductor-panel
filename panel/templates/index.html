@@ -32,6 +32,32 @@
     text-align: right;
   }
 
+  /* signal bars */
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 44px;
+    padding: 0 4px;
+  }
+  .signal-bar {
+    flex: 1;
+    background: var(--panel-border, #1a1a2e);
+    border-radius: 1px;
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  .signal-bar.lit {
+    box-shadow: 0 0 6px var(--signal-color, #00e060);
+    background: var(--signal-color, #00e060);
+  }
+  .signal-dbm {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-align: right;
+    margin-top: 2px;
+  }
+
   /* gauges */
   .gauge-track { fill: none; stroke: var(--panel-border); stroke-width: 8; }
   .gauge-fill  { fill: none; stroke: var(--accent-primary); stroke-width: 8;
@@ -550,6 +576,51 @@ function colorToVar(color) {
 }
 
 // ─────────────────────────────────────────────
+// Signal bars (WiFi / connectivity)
+// ─────────────────────────────────────────────
+function updateSignalBars(id, value) {
+  const quality = value.quality ?? 0;   // 0–100
+  const dbm = value.dbm ?? null;
+  const down = value.down ?? false;
+
+  // Map quality to number of lit bars (0–5)
+  const litCount = down ? 0 : Math.min(5, Math.max(0, Math.ceil(quality / 20)));
+
+  // Color based on strength
+  let color;
+  if (down || litCount === 0) color = '#ff2040';
+  else if (litCount <= 1)     color = '#ff2040';
+  else if (litCount <= 2)     color = '#ff6020';
+  else if (litCount <= 3)     color = '#ffb020';
+  else                        color = '#00e060';
+
+  for (let i = 0; i < 5; i++) {
+    const bar = document.getElementById(`sig-bar-${id}-${i}`);
+    if (!bar) continue;
+    if (i < litCount) {
+      bar.classList.add('lit');
+      bar.style.setProperty('--signal-color', color);
+    } else {
+      bar.classList.remove('lit');
+    }
+  }
+
+  const label = document.getElementById(`sig-dbm-${id}`);
+  if (label) {
+    if (down) {
+      label.textContent = 'DOWN';
+      label.style.color = '#ff2040';
+    } else if (dbm !== null) {
+      label.textContent = `${dbm} dBm`;
+      label.style.color = color;
+    } else {
+      label.textContent = `${Math.round(quality)}%`;
+      label.style.color = color;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
 // Knife switch SVG
 // ─────────────────────────────────────────────
 function knifeSVG(id) {
@@ -799,6 +870,13 @@ function ensureCard(id, kind, label, section) {
     inner = '<canvas class="heartbeat-canvas" id="hb-canvas-' + id + '"></canvas>'
           + '<div class="heartbeat-label" id="hb-label-' + id + '"></div>'
           + '<div class="card-label">' + label + '</div>';
+  } else if (kind === 'signal') {
+    const bars = [0.2, 0.4, 0.6, 0.8, 1.0].map((h, i) =>
+      `<div class="signal-bar" id="sig-bar-${id}-${i}" style="height:${h * 100}%"></div>`
+    ).join('');
+    inner = '<div class="signal-bars" id="sig-bars-' + id + '">' + bars + '</div>'
+          + '<div class="signal-dbm" id="sig-dbm-' + id + '"></div>'
+          + '<div class="card-label">' + label + '</div>';
   }
 
   card.innerHTML = inner;
@@ -889,6 +967,8 @@ function updateCard(id, kind, value) {
       }
     }
     drawHeartbeat(id, value);
+  } else if (kind === 'signal') {
+    updateSignalBars(id, value);
   }
 }
 

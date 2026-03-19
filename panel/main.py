@@ -339,6 +339,60 @@ async def site_health_poller():
 
 
 # ---------------------------------------------------------------------------
+# WiFi signal monitoring
+# ---------------------------------------------------------------------------
+
+WIFI_INTERFACE = os.getenv("WIFI_INTERFACE", "wlo1")
+WIFI_CHECK_INTERVAL = 10  # seconds — WiFi can change fast
+
+_wifi_up: bool | None = None
+
+def _read_wifi() -> dict:
+    """Read WiFi quality/signal from /proc/net/wireless."""
+    try:
+        with open("/proc/net/wireless") as f:
+            lines = f.readlines()
+        for line in lines[2:]:  # skip header lines
+            parts = line.split()
+            iface = parts[0].rstrip(":")
+            if iface == WIFI_INTERFACE:
+                quality = float(parts[2].rstrip("."))
+                dbm = int(float(parts[3].rstrip(".")))
+                # Quality is typically 0–70 on Linux; normalize to 0–100
+                quality_pct = min(100, round(quality / 70 * 100))
+                return {"quality": quality_pct, "dbm": dbm, "down": False}
+        return {"quality": 0, "dbm": 0, "down": True}
+    except Exception:
+        return {"quality": 0, "dbm": 0, "down": True}
+
+async def wifi_poller():
+    """Poll WiFi signal strength, post signal bars widget."""
+    global _wifi_up
+    while True:
+        data = _read_wifi()
+        await _update("signal", "nb-wifi", {
+            **data,
+            "_meta": {"label": "NB WiFi", "section": "NB INFRA"},
+        })
+
+        is_up = not data["down"]
+        if _wifi_up is not None and is_up != _wifi_up:
+            if is_up:
+                msg = f"✅  WiFi back UP ({data['dbm']} dBm)"
+            else:
+                msg = "🔴  WiFi is DOWN"
+            with db_connect() as conn:
+                add_ticker(conn, msg, "INFRA")
+                conn.commit()
+            await broker.broadcast("ticker", {
+                "message": msg, "source": "INFRA", "ts": time.time(),
+            })
+        _wifi_up = is_up
+
+        await asyncio.sleep(WIFI_CHECK_INTERVAL)
+
+
+# ---------------------------------------------------------------------------
 # Milestone detection
 # ---------------------------------------------------------------------------
 
@@ -501,6 +555,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(dj_watcher())
         asyncio.create_task(icecast_poller())
     asyncio.create_task(site_health_poller())
+    asyncio.create_task(wifi_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -691,6 +746,10 @@ async def post_coil(id: str, request: Request):
 @app.post("/api/heartbeat/{id}")
 async def post_heartbeat(id: str, request: Request):
     return await _update("heartbeat", id, await request.json())
+
+@app.post("/api/signal/{id}")
+async def post_signal(id: str, request: Request):
+    return await _update("signal", id, await request.json())
 
 @app.post("/api/ticker")
 async def post_ticker(request: Request):
