@@ -619,8 +619,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+import re as _re
+
+_BOT_UA_RE = _re.compile(
+    r"Amazonbot|GPTBot|Google-Extended|CCBot|ChatGPT|ClaudeBot|anthropic-ai|"
+    r"Bytespider|PetalBot|Applebot-Extended|FacebookBot|Meta-ExternalAgent|"
+    r"cohere-ai|Diffbot|ImagesiftBot|Omgilibot|YouBot|PerplexityBot|Scrapy|"
+    r"Sogou|YandexBot|SemrushBot|AhrefsBot|MJ12bot|DotBot|BLEXBot|"
+    r"DataForSeoBot|serpstatbot|Seekport|zoominfobot|Screaming.Frog",
+    _re.IGNORECASE,
+)
+
 @app.middleware("http")
-async def no_robots(request: Request, call_next):
+async def bot_block(request: Request, call_next):
+    ua = request.headers.get("user-agent", "")
+    if not ua or _BOT_UA_RE.search(ua):
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse("Access denied.", status_code=403)
     response = await call_next(request)
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
     return response
