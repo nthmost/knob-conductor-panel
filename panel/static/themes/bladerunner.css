@@ -18,10 +18,10 @@
   --lamp-on-red:    #ff003c;
   --lamp-on-amber:  #ff6b35;
   --lamp-on-blue:   #00e5ff;
-  --lamp-glow-green:  0 0 12px #00ff9d, 0 0 24px #00cc7a, 0 0 40px #004422;
-  --lamp-glow-red:    0 0 12px #ff003c, 0 0 24px #cc0030, 0 0 40px #440010;
-  --lamp-glow-amber:  0 0 12px #ff6b35, 0 0 24px #cc4a20;
-  --lamp-glow-blue:   0 0 12px #00e5ff, 0 0 24px #00b8cc, 0 0 40px #003344;
+  --lamp-glow-green:  0 0 8px #00ff9d, 0 0 18px #004422;
+  --lamp-glow-red:    0 0 8px #ff003c, 0 0 18px #440010;
+  --lamp-glow-amber:  0 0 8px #ff6b35, 0 0 18px #cc4a20;
+  --lamp-glow-blue:   0 0 8px #00e5ff, 0 0 18px #003344;
 
   /* blinken */
   --blinken-idle:   #030308;
