@@ -307,10 +307,9 @@ async def site_health_poller():
                     up = False
                     response_ms = timeout_ms
 
-                # Gauge value: response time as percentage of timeout ceiling
-                gauge_pct = min(100, round(response_ms / timeout_ms * 100, 1))
-                await _update("gauge", site_id, {
-                    "value": gauge_pct,
+                await _update("heartbeat", site_id, {
+                    "response_ms": round(response_ms, 1) if up else -1,
+                    "timeout_ms": timeout_ms,
                     "_meta": {"label": cfg["label"], "section": cfg["section"]},
                 })
 
@@ -666,6 +665,10 @@ async def post_knife(id: str, request: Request):
 @app.post("/api/coil/{id}")
 async def post_coil(id: str, request: Request):
     return await _update("coil", id, await request.json())
+
+@app.post("/api/heartbeat/{id}")
+async def post_heartbeat(id: str, request: Request):
+    return await _update("heartbeat", id, await request.json())
 
 @app.post("/api/ticker")
 async def post_ticker(request: Request):
