@@ -618,6 +618,13 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+@app.middleware("http")
+async def no_robots(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
+    return response
+
 app.mount("/static", StaticFiles(directory=os.path.join(PANEL_DIR, "static")), name="static")
 
 # ---------------------------------------------------------------------------
