@@ -660,19 +660,18 @@ function genLightning(x1, y1, x2, y2, depth) {
 
 function startCoilAnim(id) {
   if (coilAnims[id]) return;
-  let running = true;
   let lastBoltTs = 0;
   let bolt = null;
   let boltLifeMs = 0;
+  const entry = { raf: null, stopped: false };
 
   function frame(ts) {
-    if (!running) return;
+    if (entry.stopped) return;
     const canvas = document.getElementById(`coil-canvas-${id}`);
-    if (!canvas) { running = false; return; }
+    if (!canvas) { stopCoilAnim(id); return; }
 
     drawCoilBody(canvas, true);
 
-    // refresh bolt every 150–400 ms
     if (!bolt || ts - lastBoltTs > boltLifeMs) {
       lastBoltTs = ts;
       boltLifeMs = 150 + Math.random() * 250;
@@ -695,17 +694,18 @@ function startCoilAnim(id) {
       ctx.restore();
     }
 
-    coilAnims[id].raf = requestAnimationFrame(frame);
+    entry.raf = requestAnimationFrame(frame);
   }
 
-  coilAnims[id] = { raf: null, stop: () => { running = false; } };
-  coilAnims[id].raf = requestAnimationFrame(frame);
+  coilAnims[id] = entry;
+  entry.raf = requestAnimationFrame(frame);
 }
 
 function stopCoilAnim(id) {
-  if (coilAnims[id]) {
-    coilAnims[id].stop();
-    cancelAnimationFrame(coilAnims[id].raf);
+  const entry = coilAnims[id];
+  if (entry) {
+    entry.stopped = true;
+    if (entry.raf) cancelAnimationFrame(entry.raf);
     delete coilAnims[id];
   }
   const canvas = document.getElementById(`coil-canvas-${id}`);
@@ -881,8 +881,23 @@ function addTicker(message, ts, isNew) {
 // ─────────────────────────────────────────────
 // SSE
 // ─────────────────────────────────────────────
+let _currentES = null;
+let _sseReconnectTimer = null;
+
 function connectSSE() {
+  // Close previous connection to prevent accumulation
+  if (_currentES) {
+    _currentES.onerror = null;  // prevent triggering reconnect from close
+    _currentES.close();
+    _currentES = null;
+  }
+  if (_sseReconnectTimer) {
+    clearTimeout(_sseReconnectTimer);
+    _sseReconnectTimer = null;
+  }
+
   const es = new EventSource('/events');
+  _currentES = es;
 
   es.addEventListener('instrument_added', e => {
     const d = JSON.parse(e.data);
@@ -911,11 +926,9 @@ function connectSSE() {
     document.getElementById(`card-${id}`)?.remove();
   });
 
-
   es.addEventListener('milestone', e => {
     const d = JSON.parse(e.data);
     showMilestone(d.message, d.color);
-    // Critical events trigger arc storm for 10 seconds
     if (d.color === 'red') {
       startArcStorm(1.0);
       setTimeout(() => stopArcStorm(), 10000);
@@ -937,7 +950,10 @@ function connectSSE() {
     document.getElementById('ticker-entries').innerHTML = '';
   });
 
-  es.onerror = () => setTimeout(connectSSE, 3000);
+  es.onerror = () => {
+    if (es !== _currentES) return;  // stale connection, ignore
+    _sseReconnectTimer = setTimeout(connectSSE, 3000);
+  };
 }
 
 // ─────────────────────────────────────────────
@@ -1067,6 +1083,7 @@ function startBgEffect(name) {
 let _arcStormActive = false;
 let _arcStormRaf = null;
 let _arcStormIntensity = 0;
+let _arcStormClearTimer = null;
 
 function _lightningSegments(x1, y1, x2, y2, roughness, depth) {
   if (depth === 0) return [[x1, y1, x2, y2]];
@@ -1129,7 +1146,8 @@ function startArcStorm(intensity) {
       }
       const minGap = Math.max(150, 2000 - _arcStormIntensity * 1850);
       nextBolt = ts + minGap + Math.random() * minGap;
-      setTimeout(() => { if (_arcStormActive) ctx.clearRect(0, 0, W, H); }, 80 + Math.random() * 120);
+      if (_arcStormClearTimer) clearTimeout(_arcStormClearTimer);
+      _arcStormClearTimer = setTimeout(() => { if (_arcStormActive) ctx.clearRect(0, 0, W, H); }, 80 + Math.random() * 120);
     }
     _arcStormRaf = requestAnimationFrame(frame);
   }
@@ -1140,6 +1158,7 @@ function stopArcStorm() {
   if (!_arcStormActive) return;
   _arcStormActive = false;
   if (_arcStormRaf) { cancelAnimationFrame(_arcStormRaf); _arcStormRaf = null; }
+  if (_arcStormClearTimer) { clearTimeout(_arcStormClearTimer); _arcStormClearTimer = null; }
   const cv = document.getElementById('arc-overlay');
   if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
 }
@@ -1352,6 +1371,7 @@ function startCountdown() {
 // ─────────────────────────────────────────────
 // Boot
 // ─────────────────────────────────────────────
+const _intervals = [];
 window.addEventListener('DOMContentLoaded', () => {
   setTheme(currentTheme);
   initBlinken();
@@ -1363,13 +1383,22 @@ window.addEventListener('DOMContentLoaded', () => {
   loadState();
   connectSSE();
   tickClock();
-  setInterval(tickClock, 1000);
-  setInterval(updateStreamUptime, 50);
+  _intervals.push(setInterval(tickClock, 1000));
+  _intervals.push(setInterval(updateStreamUptime, 1000));
   updateMetrics();
-  setInterval(updateMetrics, 2000);
+  _intervals.push(setInterval(updateMetrics, 2000));
   updateRadio();
-  setInterval(updateRadio, 5000);
+  _intervals.push(setInterval(updateRadio, 5000));
   startCountdown();
+});
+
+window.addEventListener('beforeunload', () => {
+  _intervals.forEach(id => clearInterval(id));
+  if (_currentES) { _currentES.close(); _currentES = null; }
+  if (_sseReconnectTimer) clearTimeout(_sseReconnectTimer);
+  Object.keys(coilAnims).forEach(id => stopCoilAnim(id));
+  stopArcStorm();
+  if (bgStop) bgStop();
 });
 
 window.addEventListener('resize', () => {

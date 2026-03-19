@@ -286,6 +286,19 @@ MILESTONES = [
     },
 ]
 
+_COOLDOWN_PRUNE_INTERVAL = 300  # prune every 5 minutes
+_last_cooldown_prune: float = 0.0
+
+def _prune_cooldowns():
+    global _last_cooldown_prune
+    now = time.time()
+    if now - _last_cooldown_prune < _COOLDOWN_PRUNE_INTERVAL:
+        return
+    _last_cooldown_prune = now
+    stale = [k for k, ts in _milestone_cooldowns.items() if now - ts > 300]
+    for k in stale:
+        del _milestone_cooldowns[k]
+
 async def _fire_milestone(ms_id: str, message: str, color: str):
     _milestone_cooldowns[ms_id] = time.time()
     await broker.broadcast("milestone", {
@@ -299,6 +312,7 @@ async def _fire_milestone(ms_id: str, message: str, color: str):
     })
 
 async def check_milestones(kind: str, value: dict):
+    _prune_cooldowns()
     now = time.time()
     _event_log.append({"ts": now, "kind": kind, "value": value})
     for ms in MILESTONES:
@@ -348,7 +362,7 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
 # ---------------------------------------------------------------------------
 
 _cpu_sample: tuple = (0, 0)
-_perf_log: deque = deque(maxlen=500)
+_perf_log: deque = deque(maxlen=100)
 
 def _read_cpu() -> float:
     global _cpu_sample
