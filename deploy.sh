@@ -32,3 +32,9 @@ fi
 
 sudo systemctl restart "$SERVICE"
 echo "$(date -Iseconds) Restarted $SERVICE (now $(git rev-parse --short HEAD))" >> "$LOGFILE"
+
+# Re-register workflow definitions if changed
+if git diff "$LOCAL" "$REMOTE" --name-only | grep -q workflows/; then
+    echo "$(date -Iseconds) Workflow definitions changed, re-registering" >> "$LOGFILE"
+    "$VENV/bin/python" workflows/register_workflows.py >> "$LOGFILE" 2>&1
+fi
