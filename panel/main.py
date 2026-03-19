@@ -516,6 +516,16 @@ def ensure_instrument(conn, id: str, kind: str, meta: dict):
             (id, kind, meta.get("label", id), meta.get("section"), meta.get("conductor_ref"))
         )
         return True
+    # Update label/section if provided in _meta
+    updates = {}
+    if "label" in meta:
+        updates["label"] = meta["label"]
+    if "section" in meta:
+        updates["section"] = meta["section"]
+    if updates:
+        sets = ", ".join(f"{k} = ?" for k in updates)
+        conn.execute(f"UPDATE instruments SET {sets} WHERE id = ?",
+                     (*updates.values(), id))
     return False
 
 def set_state(conn, id: str, value: dict):
