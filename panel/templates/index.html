@@ -880,6 +880,14 @@ function updateCard(id, kind, value) {
       stopCoilAnim(id);
     }
   } else if (kind === 'heartbeat') {
+    if (value.url && !instruments[id]._hbLinked) {
+      const card = document.getElementById('card-' + id);
+      if (card) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => window.open(value.url, '_blank'));
+        instruments[id]._hbLinked = true;
+      }
+    }
     drawHeartbeat(id, value);
   }
 }

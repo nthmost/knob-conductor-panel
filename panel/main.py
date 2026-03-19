@@ -316,6 +316,7 @@ async def site_health_poller():
                 await _update("heartbeat", site_id, {
                     "response_ms": round(response_ms, 1) if up else -1,
                     "timeout_ms": timeout_ms,
+                    "url": cfg["url"],
                     "_meta": {"label": cfg["label"], "section": cfg["section"]},
                 })
 
