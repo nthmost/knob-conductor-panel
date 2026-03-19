@@ -36,26 +36,29 @@
   .signal-bars {
     display: flex;
     align-items: flex-end;
-    gap: 3px;
+    gap: 4px;
     height: 44px;
-    padding: 0 4px;
+    width: 100%;
+    min-width: 80px;
   }
   .signal-bar {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 12px;
     background: var(--panel-border, #1a1a2e);
-    border-radius: 1px;
+    border-radius: 2px;
     transition: background 0.4s, box-shadow 0.4s;
   }
   .signal-bar.lit {
-    box-shadow: 0 0 6px var(--signal-color, #00e060);
+    box-shadow: 0 0 8px var(--signal-color, #00e060);
     background: var(--signal-color, #00e060);
   }
   .signal-dbm {
     font-family: var(--font-mono, monospace);
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     letter-spacing: 0.1em;
-    text-align: right;
-    margin-top: 2px;
+    text-align: center;
+    margin-top: 3px;
+    width: 100%;
   }
 
   /* gauges */
