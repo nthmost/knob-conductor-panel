@@ -281,7 +281,13 @@ SITE_MONITORS = {
         "url": "https://www.noisebridge.net/",
         "label": "noisebridge.net",
         "section": "NB INFRA",
-        "timeout_ms": 5000,  # gauge reads 0–100% of this range
+        "timeout_ms": 5000,
+    },
+    "noisebridge-eu": {
+        "url": "https://noisebridge.eu/",
+        "label": "noisebridge.eu",
+        "section": "NB INFRA",
+        "timeout_ms": 5000,
     },
 }
 SITE_CHECK_INTERVAL = 60  # seconds
