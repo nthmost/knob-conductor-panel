@@ -393,6 +393,63 @@ async def wifi_poller():
 
 
 # ---------------------------------------------------------------------------
+# Network activity → blinken LEDs
+# ---------------------------------------------------------------------------
+
+NET_POLL_INTERVAL = 1.5  # seconds
+_prev_net: dict = {}
+
+def _read_net_dev(iface: str = "wlo1") -> dict | None:
+    """Read rx/tx bytes from /proc/net/dev for a given interface."""
+    try:
+        with open("/proc/net/dev") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith(iface + ":"):
+                    parts = line.split(":")[1].split()
+                    return {
+                        "rx_bytes": int(parts[0]),
+                        "tx_bytes": int(parts[8]),
+                    }
+    except Exception:
+        pass
+    return None
+
+async def net_blinken_poller():
+    """Map network traffic deltas to blinken LED blinks."""
+    global _prev_net
+    iface = WIFI_INTERFACE
+
+    while True:
+        cur = _read_net_dev(iface)
+        if cur and _prev_net:
+            rx_delta = max(0, cur["rx_bytes"] - _prev_net["rx_bytes"])
+            tx_delta = max(0, cur["tx_bytes"] - _prev_net["tx_bytes"])
+
+            # Scale bytes/interval to number of blinks (0–8 per direction)
+            # ~10KB/interval = 1 blink, ~500KB+ = 8 blinks
+            rx_blinks = min(8, int(rx_delta / 10000))
+            tx_blinks = min(8, int(tx_delta / 10000))
+
+            # RX → channels 0–15 (rack A), blue
+            for i in range(rx_blinks):
+                ch = (hash((time.time(), i, "rx")) & 0x7FFFFFFF) % 16
+                await broker.broadcast("blink", {"channel": ch, "color": "blue"})
+
+            # TX → channels 16–31 (rack B), amber
+            for i in range(tx_blinks):
+                ch = 16 + (hash((time.time(), i, "tx")) & 0x7FFFFFFF) % 16
+                await broker.broadcast("blink", {"channel": ch, "color": "amber"})
+
+            # Feed into perf log for velocity — only on meaningful traffic
+            if rx_blinks + tx_blinks > 2:
+                _perf_log.append(time.time())
+
+        _prev_net = cur or _prev_net
+        await asyncio.sleep(NET_POLL_INTERVAL)
+
+
+# ---------------------------------------------------------------------------
 # Milestone detection
 # ---------------------------------------------------------------------------
 
@@ -556,6 +613,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(icecast_poller())
     asyncio.create_task(site_health_poller())
     asyncio.create_task(wifi_poller())
+    asyncio.create_task(net_blinken_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
