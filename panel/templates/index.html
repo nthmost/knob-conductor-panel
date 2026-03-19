@@ -1136,6 +1136,11 @@ function connectSSE() {
     blink(d.channel, d.color || 'amber');
   });
 
+  es.addEventListener('blink_batch', e => {
+    const d = JSON.parse(e.data);
+    for (const b of d.blinks) blink(b.channel, b.color || 'amber');
+  });
+
   es.addEventListener('ticker', e => {
     const d = JSON.parse(e.data);
     addTicker(d.message, d.ts, true);

@@ -396,7 +396,7 @@ async def wifi_poller():
 # Network activity → blinken LEDs
 # ---------------------------------------------------------------------------
 
-NET_POLL_INTERVAL = 1.5  # seconds
+NET_POLL_INTERVAL = 2.0  # seconds
 _prev_net: dict = {}
 
 def _read_net_dev(iface: str = "wlo1") -> dict | None:
@@ -416,7 +416,7 @@ def _read_net_dev(iface: str = "wlo1") -> dict | None:
     return None
 
 async def net_blinken_poller():
-    """Map network traffic deltas to blinken LED blinks."""
+    """Map network traffic deltas to batched blinken LED blinks."""
     global _prev_net
     iface = WIFI_INTERFACE
 
@@ -426,20 +426,21 @@ async def net_blinken_poller():
             rx_delta = max(0, cur["rx_bytes"] - _prev_net["rx_bytes"])
             tx_delta = max(0, cur["tx_bytes"] - _prev_net["tx_bytes"])
 
-            # Scale bytes/interval to number of blinks (0–8 per direction)
-            # ~10KB/interval = 1 blink, ~500KB+ = 8 blinks
-            rx_blinks = min(8, int(rx_delta / 10000))
-            tx_blinks = min(8, int(tx_delta / 10000))
+            # Scale: 50KB/interval = 1 blink, caps at 4 per direction
+            rx_blinks = min(4, int(rx_delta / 50000))
+            tx_blinks = min(4, int(tx_delta / 50000))
 
-            # RX → channels 0–15 (rack A), blue
+            # Batch all blinks into a single SSE event
+            blinks = []
             for i in range(rx_blinks):
                 ch = (hash((time.time(), i, "rx")) & 0x7FFFFFFF) % 16
-                await broker.broadcast("blink", {"channel": ch, "color": "blue"})
-
-            # TX → channels 16–31 (rack B), amber
+                blinks.append({"channel": ch, "color": "blue"})
             for i in range(tx_blinks):
                 ch = 16 + (hash((time.time(), i, "tx")) & 0x7FFFFFFF) % 16
-                await broker.broadcast("blink", {"channel": ch, "color": "amber"})
+                blinks.append({"channel": ch, "color": "amber"})
+
+            if blinks:
+                await broker.broadcast("blink_batch", {"blinks": blinks})
 
             # Feed into perf log for velocity — only on meaningful traffic
             if rx_blinks + tx_blinks > 2:
