@@ -250,7 +250,7 @@ SITE_CHECK_URLS = {
     "noisebridge-net": {
         "url": "https://www.noisebridge.net/",
         "label": "noisebridge.net",
-        "section": "SITE HEALTH",
+        "section": "NB INFRA",
     },
 }
 SITE_CHECK_INTERVAL = 60  # seconds
@@ -289,7 +289,7 @@ async def site_health_poller():
                         add_ticker(conn, msg, "HEALTH")
                         conn.commit()
                     await broker.broadcast("ticker", {
-                        "message": msg, "source": "HEALTH", "ts": time.time(),
+                        "message": msg, "source": "INFRA", "ts": time.time(),
                     })
 
             await asyncio.sleep(SITE_CHECK_INTERVAL)

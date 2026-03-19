@@ -435,6 +435,10 @@
           </div>
         </div>
       </div>
+      <div class="section-box" id="section-box-nb-infra">
+        <div class="section-box-title">NB INFRA</div>
+        <div class="section-box-cards" id="nb-infra-cards"></div>
+      </div>
     </div>
   </div>
 
@@ -1375,10 +1379,12 @@ const _intervals = [];
 window.addEventListener('DOMContentLoaded', () => {
   setTheme(currentTheme);
   initBlinken();
-  // Pre-register hardcoded STREAM section so dynamic instruments join it
+  // Pre-register hardcoded sections so dynamic instruments join them in order
   (function() {
     const box = document.getElementById('section-box-stream');
     if (box) sectionBoxes['STREAM'] = { box, cardsEl: document.getElementById('stream-cards') };
+    const infra = document.getElementById('section-box-nb-infra');
+    if (infra) sectionBoxes['NB INFRA'] = { box: infra, cardsEl: document.getElementById('nb-infra-cards') };
   })();
   loadState();
   connectSSE();
