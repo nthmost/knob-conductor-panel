@@ -231,8 +231,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const CONDUCTOR = 'http://localhost:8888';
-
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -263,16 +261,7 @@ function sendTicker() {
 }
 
 async function fireStorm() {
-  try {
-    const r = await fetch(CONDUCTOR + '/api/workflow', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: 'knob-storm', version: 1, input: {}}),
-    });
-    toast(r.ok ? 'Storm fired' : 'Conductor error');
-  } catch(e) {
-    toast('Cannot reach Conductor: ' + e.message);
-  }
+  api('POST', '/api/storm');
 }
 
 function fireBlink() {

@@ -770,6 +770,20 @@ async def action_trigger(id: str, request: Request):
 # Admin
 # ---------------------------------------------------------------------------
 
+@app.post("/api/storm")
+async def trigger_storm():
+    """Trigger the knob-storm workflow via Conductor."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{CONDUCTOR_URL}/api/workflow",
+                json={"name": "knob-storm", "version": 1, "input": {}},
+                timeout=4.0,
+            )
+        return {"ok": True, "workflow_id": r.json()}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 @app.post("/api/reset")
 async def reset():
     with db_connect() as conn:
