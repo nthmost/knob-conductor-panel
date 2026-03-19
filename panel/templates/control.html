@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="bladerunner">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KNOB — Control Panel</title>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/themes/bladerunner.css">
+<style>
+  body { background: var(--panel-bg); color: var(--text-primary); }
+  #control-page {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    font-family: var(--font-label);
+  }
+  h1 {
+    font-family: var(--font-display);
+    color: var(--accent-primary);
+    letter-spacing: 0.15em;
+    font-size: 1.6rem;
+    border-bottom: 1px solid var(--accent-primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  h2 {
+    font-family: var(--font-mono);
+    color: var(--accent-primary);
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin: 1.8rem 0 0.6rem;
+    opacity: 0.7;
+  }
+  .control-group {
+    background: var(--panel-surface);
+    border: 1px solid var(--panel-border);
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+  }
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    margin-bottom: 0.6rem;
+    outline: none;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(0,229,255,0.2);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  select { cursor: pointer; }
+  select option { background: var(--panel-bg); color: var(--text-primary); }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover {
+    background: var(--accent-primary);
+    color: var(--panel-bg);
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-danger {
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
+  }
+  .btn-danger:hover {
+    background: var(--accent-danger);
+    color: var(--panel-bg);
+  }
+  .btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--panel-surface);
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .back-link {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+  }
+  .back-link:hover { color: var(--accent-primary); }
+
+  .inline-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+  .inline-row > * { flex: 1; }
+  .inline-row > .btn { flex: 0 0 auto; margin-bottom: 0.6rem; }
+</style>
+</head>
+<body>
+<div id="control-page">
+  <a href="/" class="back-link">&larr; BACK TO PANEL</a>
+
+  <h1>KNOB CONTROL</h1>
+
+  <!-- ── Ticker Message ── -->
+  <h2>Send Ticker Message</h2>
+  <div class="control-group">
+    <label>Message</label>
+    <input type="text" id="ticker-msg" placeholder="your message here">
+    <div class="inline-row">
+      <div>
+        <label>Source</label>
+        <input type="text" id="ticker-source" placeholder="OPERATOR" value="OPERATOR">
+      </div>
+      <div>
+        <label>Milestone?</label>
+        <select id="ticker-milestone">
+          <option value="false">No</option>
+          <option value="true">Yes — shows ★ banner</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" onclick="sendTicker()">SEND</button>
+  </div>
+
+  <!-- ── Storm ── -->
+  <h2>Trigger Storm</h2>
+  <div class="control-group">
+    <p style="color:var(--text-dim); font-size:0.75rem; margin-bottom:0.8rem; font-family:var(--font-mono);">
+      Fire the full-panel chaos sequence via Conductor. All gauges peg, transmitters go red, then recover.
+    </p>
+    <button class="btn btn-danger" onclick="fireStorm()">FIRE STORM</button>
+  </div>
+
+  <!-- ── Quick Blink ── -->
+  <h2>Blink LEDs</h2>
+  <div class="control-group">
+    <div class="inline-row">
+      <div>
+        <label>Channel (0–31)</label>
+        <input type="text" id="blink-channel" value="0">
+      </div>
+      <div>
+        <label>Color</label>
+        <select id="blink-color">
+          <option value="amber">Amber</option>
+          <option value="green">Green</option>
+          <option value="blue">Blue</option>
+          <option value="red">Red</option>
+        </select>
+      </div>
+      <button class="btn" onclick="fireBlink()">BLINK</button>
+    </div>
+    <div style="margin-top:0.6rem;">
+      <button class="btn" onclick="blinkBurst()">BURST ALL CHANNELS</button>
+    </div>
+  </div>
+
+  <!-- ── Lamp Override ── -->
+  <h2>Set Lamp</h2>
+  <div class="control-group">
+    <div class="inline-row">
+      <div>
+        <label>Instrument ID</label>
+        <input type="text" id="lamp-id" placeholder="e.g. tx-alpha">
+      </div>
+      <div>
+        <label>Color</label>
+        <select id="lamp-color">
+          <option value="green">Green</option>
+          <option value="amber">Amber</option>
+          <option value="red">Red</option>
+          <option value="blue">Blue</option>
+        </select>
+      </div>
+      <div>
+        <label>State</label>
+        <select id="lamp-state">
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+    </div>
+    <div class="inline-row" style="margin-top:0.4rem;">
+      <div>
+        <label>Label</label>
+        <input type="text" id="lamp-label" placeholder="Display name">
+      </div>
+      <div>
+        <label>Section</label>
+        <input type="text" id="lamp-section" placeholder="e.g. TRANSMITTERS">
+      </div>
+      <button class="btn" onclick="setLamp()">SET</button>
+    </div>
+  </div>
+
+  <!-- ── Active Instruments ── -->
+  <h2>Active Instruments</h2>
+  <div class="control-group" id="instruments-list" style="font-family:var(--font-mono); font-size:0.7rem; max-height:300px; overflow-y:auto;">
+    Loading...
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CONDUCTOR = 'http://localhost:8888';
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: {'Content-Type': 'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(path, opts);
+    const d = await r.json();
+    toast(d.ok ? 'OK' : 'Error: ' + JSON.stringify(d));
+    return d;
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+function sendTicker() {
+  const msg = document.getElementById('ticker-msg').value.trim();
+  if (!msg) return toast('Enter a message');
+  const source = document.getElementById('ticker-source').value.trim() || 'OPERATOR';
+  const milestone = document.getElementById('ticker-milestone').value === 'true';
+  api('POST', '/api/ticker', { message: msg, source, milestone });
+  document.getElementById('ticker-msg').value = '';
+}
+
+async function fireStorm() {
+  try {
+    const r = await fetch(CONDUCTOR + '/api/workflow', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: 'knob-storm', version: 1, input: {}}),
+    });
+    toast(r.ok ? 'Storm fired' : 'Conductor error');
+  } catch(e) {
+    toast('Cannot reach Conductor: ' + e.message);
+  }
+}
+
+function fireBlink() {
+  const ch = parseInt(document.getElementById('blink-channel').value) || 0;
+  const color = document.getElementById('blink-color').value;
+  api('POST', '/api/blink/' + Math.max(0, Math.min(31, ch)), { color });
+}
+
+function blinkBurst() {
+  const colors = ['red', 'amber', 'blue', 'green'];
+  for (let ch = 0; ch < 32; ch++) {
+    setTimeout(() => {
+      api('POST', '/api/blink/' + ch, { color: colors[ch % 4] });
+    }, ch * 60);
+  }
+}
+
+function setLamp() {
+  const id = document.getElementById('lamp-id').value.trim();
+  if (!id) return toast('Enter an instrument ID');
+  const color = document.getElementById('lamp-color').value;
+  const state = document.getElementById('lamp-state').value;
+  const label = document.getElementById('lamp-label').value.trim() || id;
+  const section = document.getElementById('lamp-section').value.trim();
+  const body = { state, color, _meta: { label } };
+  if (section) body._meta.section = section;
+  api('POST', '/api/lamp/' + id, body);
+}
+
+async function loadInstruments() {
+  try {
+    const r = await fetch('/api/state');
+    const d = await r.json();
+    const el = document.getElementById('instruments-list');
+    if (!d.instruments || d.instruments.length === 0) {
+      el.textContent = 'No instruments registered.';
+      return;
+    }
+    el.innerHTML = d.instruments.map(inst => {
+      const state = JSON.stringify(inst.state);
+      const sec = inst.section ? `[${inst.section}]` : '';
+      return `<div style="padding:0.3rem 0; border-bottom:1px solid var(--panel-border);">
+        <span style="color:var(--accent-primary)">${inst.id}</span>
+        <span style="color:var(--text-dim)">${inst.kind} ${sec}</span>
+        <span style="color:var(--text-dim); float:right">${state}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('instruments-list').textContent = 'Error loading state';
+  }
+}
+
+// Enter key sends ticker
+document.getElementById('ticker-msg').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendTicker();
+});
+
+loadInstruments();
+setInterval(loadInstruments, 10000);
+</script>
+</body>
+</html>

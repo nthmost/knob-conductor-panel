@@ -547,6 +547,11 @@ async def index():
     with open(os.path.join(PANEL_DIR, "templates/index.html")) as f:
         return f.read()
 
+@app.get("/control", response_class=HTMLResponse)
+async def control():
+    with open(os.path.join(PANEL_DIR, "templates/control.html")) as f:
+        return f.read()
+
 # ---------------------------------------------------------------------------
 # Routes — SSE
 # ---------------------------------------------------------------------------
