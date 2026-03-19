@@ -209,37 +209,7 @@ wf_modulation = {
 }
 
 # ─────────────────────────────────────────────
-# 7. knob-ebs-check — Emergency Broadcast System test
-# ─────────────────────────────────────────────
-wf_ebs = {
-    "name": "knob-ebs-check", "version": 1,
-    "description": "EBS weekly test sequence — knife, coil, all clear",
-    "tasks": [
-        ticker("ebs_init", "🚨  EBS TEST SEQUENCE INITIATED", "EBS"),
-        knife("ebs_knife_close", "ebs-relay", "closed",
-              "EBS Relay", "AUDIO ROUTING"),
-        coil("ebs_coil_on", "ebs-coil", "on",
-             "EBS Coil", "AUDIO ROUTING"),
-        fork("ebs_alert", [
-            lamp("ebs_lamp_r", "ebs-alert-r", "on", "red",   "EBS Alert", "TRANSMITTERS"),
-            lamp("ebs_lamp_a", "ebs-alert-a", "on", "amber", "EBS Alert", "TRANSMITTERS"),
-            blink("ebs_b0", 24, "red"),
-            blink("ebs_b1", 25, "red"),
-            blink("ebs_b2", 26, "amber"),
-        ]),
-        join("ebs_alert", ["ebs_lamp_r","ebs_lamp_a","ebs_b2"]),
-        coil("ebs_coil_off", "ebs-coil", "off",
-             "EBS Coil", "AUDIO ROUTING"),
-        knife("ebs_knife_open", "ebs-relay", "open",
-              "EBS Relay", "AUDIO ROUTING"),
-        lamp("ebs_lamp_clear_r", "ebs-alert-r", "off", "red",   "EBS Alert", "TRANSMITTERS"),
-        lamp("ebs_lamp_clear_a", "ebs-alert-a", "off", "amber", "EBS Alert", "TRANSMITTERS"),
-        ticker("ebs_clear", "✅  EBS TEST COMPLETE — ALL CLEAR — BROADCAST NOMINAL", "EBS"),
-    ]
-}
-
-# ─────────────────────────────────────────────
-# 8. knob-storm — big visual chaos burst
+# 7. knob-storm — big visual chaos burst
 # ─────────────────────────────────────────────
 wf_storm = {
     "name": "knob-storm", "version": 1,
@@ -294,7 +264,7 @@ wf_storm = {
 # ─────────────────────────────────────────────
 workflows = [
     wf_stream_pulse, wf_radio_sync, wf_freq_scan, wf_carrier_check,
-    wf_signal_route, wf_modulation, wf_ebs, wf_storm
+    wf_signal_route, wf_modulation, wf_storm
 ]
 
 schedules = [
@@ -304,7 +274,6 @@ schedules = [
     schedule("knob-carrier-check-5m",  "knob-carrier-check", "0 */5 * * * ?"),
     schedule("knob-signal-route-2m",   "knob-signal-route",  "30 */2 * * * ?"),
     schedule("knob-modulation-7m",     "knob-modulation",    "0 */7 * * * ?"),
-    schedule("knob-ebs-check-15m",     "knob-ebs-check",     "0 */15 * * * ?"),
     schedule("knob-storm-10m",         "knob-storm",         "0 */10 * * * ?"),
 ]
 
