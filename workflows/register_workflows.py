@@ -78,16 +78,10 @@ def schedule(name, wf_name, cron):
 # ─────────────────────────────────────────────
 wf_stream_pulse = {
     "name": "knob-stream-pulse", "version": 1,
-    "description": "Poll Icecast, post real bitrate + stream health to panel",
+    "description": "Poll Icecast, blink stream LED",
     "tasks": [
         http_task("get_icecast", f"{ICECAST}/status-json.xsl", "GET"),
-        fork("stream_display", [
-            gauge("post_bitrate", "stream-bitrate",
-                  "${get_icecast.output.response.body.icestats.source.audio_bitrate}",
-                  "Bitrate (bps)", "STREAM"),
-            blink("blink_stream", 0, "blue"),
-        ]),
-        join("stream_display", ["post_bitrate", "blink_stream"]),
+        blink("blink_stream", 0, "blue"),
     ]
 }
 
