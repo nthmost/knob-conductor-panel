@@ -276,7 +276,7 @@ html, body {
 .coil-canvas { display: block; cursor: default; }
 .card[data-kind="coil"]  { overflow: visible; width: 160px; }
 .card[data-kind="knife"] { width: 140px; }
-.card[data-kind="heartbeat"] { width: 170px; }
+.card[data-kind="heartbeat"] { width: 200px; }
 
 
 /* ── metrics bar ── */
