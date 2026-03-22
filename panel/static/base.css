@@ -24,7 +24,7 @@ html, body {
   position: relative; z-index: 1;
   max-width: 100%;
   padding: 1rem 1.5rem 3rem;
-  display: flex; flex-direction: column; gap: 1.5rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
 }
 
 /* ── panel header ── */
