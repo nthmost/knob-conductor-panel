@@ -676,10 +676,10 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(radio_poller())
         asyncio.create_task(dj_watcher())
         asyncio.create_task(icecast_poller())
+        asyncio.create_task(listener_blinken_poller())
     asyncio.create_task(site_health_poller())
     asyncio.create_task(wifi_poller())
     asyncio.create_task(net_blinken_poller())
-    asyncio.create_task(listener_blinken_poller())
     asyncio.create_task(entropy_poller())
     yield
 
