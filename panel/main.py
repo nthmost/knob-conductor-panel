@@ -62,6 +62,10 @@ def db_init():
                 ts      REAL DEFAULT (unixepoch())
             );
         """)
+        # Clean up stale instruments that have been moved out of the panel
+        conn.execute("DELETE FROM state WHERE instrument_id = 'listeners'")
+        conn.execute("DELETE FROM instruments WHERE id = 'listeners'")
+        conn.commit()
 
 # ---------------------------------------------------------------------------
 # SSE broker
@@ -459,25 +463,17 @@ async def net_blinken_poller():
 
 
 async def listener_blinken_poller():
-    """Blink LEDs 0-7 based on active listener count (green, rotating).
+    """Blink LEDs 0-7 based on active listener count (green, steady).
 
-    Each tick blinks 1-2 listener LEDs in a rotating sweep, cycling fast
-    enough that all active LEDs stay visually lit (faster than blink decay).
+    Blinks ALL active listener LEDs each tick so they appear steadily lit.
+    Interval is shorter than the theme's blink decay so LEDs never go dark.
     """
-    import random
-    cursor = 0
     while True:
         listeners = min(8, _radio_now.get("listeners", 0))
         if listeners > 0:
-            # Blink the current LED, plus occasionally its neighbor
-            ch = cursor % listeners
-            blinks = [{"channel": ch, "color": "green"}]
-            if listeners > 1 and random.random() < 0.4:
-                neighbor = (ch + random.choice([-1, 1])) % listeners
-                blinks.append({"channel": neighbor, "color": "green"})
+            blinks = [{"channel": ch, "color": "green"} for ch in range(listeners)]
             await broker.broadcast("blink_batch", {"blinks": blinks})
-            cursor += 1
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.1)
 
 
 # ---------------------------------------------------------------------------
