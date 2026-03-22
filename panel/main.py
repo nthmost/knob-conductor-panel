@@ -444,7 +444,7 @@ async def net_blinken_poller():
             # Batch all blinks into a single SSE event
             blinks = []
             for i in range(rx_blinks):
-                ch = (hash((time.time(), i, "rx")) & 0x7FFFFFFF) % 16
+                ch = 8 + (hash((time.time(), i, "rx")) & 0x7FFFFFFF) % 8
                 blinks.append({"channel": ch, "color": "blue"})
             for i in range(tx_blinks):
                 ch = 16 + (hash((time.time(), i, "tx")) & 0x7FFFFFFF) % 16
@@ -459,6 +459,24 @@ async def net_blinken_poller():
 
         _prev_net = cur or _prev_net
         await asyncio.sleep(NET_POLL_INTERVAL)
+
+
+async def listener_blinken_poller():
+    """Blink LEDs 0-7 based on active listener count (green, staggered)."""
+    import random
+    while True:
+        listeners = min(8, _radio_now.get("listeners", 0))
+        if listeners > 0:
+            blinks = []
+            for ch in range(listeners):
+                blinks.append({"channel": ch, "color": "green"})
+            # stagger: pick a random subset each tick for natural flicker
+            if listeners > 1:
+                showing = random.sample(blinks, max(1, len(blinks) - random.randint(0, 1)))
+            else:
+                showing = blinks
+            await broker.broadcast("blink_batch", {"blinks": showing})
+        await asyncio.sleep(1.5)
 
 
 # ---------------------------------------------------------------------------
@@ -660,6 +678,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(site_health_poller())
     asyncio.create_task(wifi_poller())
     asyncio.create_task(net_blinken_poller())
+    asyncio.create_task(listener_blinken_poller())
     asyncio.create_task(entropy_poller())
     yield
 
