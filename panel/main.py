@@ -337,7 +337,8 @@ async def site_health_poller():
                     elif current_state == 'impacted':
                         msg = f"🟡  {cfg['label']} IMPACTED ({status_code})"
                     else:
-                        msg = f"🔴  {cfg['label']} is DOWN"
+                        reason = f"{status_code}" if status_code > 0 else "timeout"
+                        msg = f"🔴  {cfg['label']} is DOWN ({reason})"
                     with db_connect() as conn:
                         add_ticker(conn, msg, "INFRA")
                         conn.commit()
