@@ -306,7 +306,7 @@ async def site_health_poller():
                     t0 = time.time()
                     resp = await client.get(cfg["url"], timeout=timeout_ms / 1000)
                     response_ms = (time.time() - t0) * 1000
-                    up = resp.status_code < 500
+                    up = resp.status_code < 400
                     if not up:
                         response_ms = timeout_ms
                 except Exception:
@@ -571,6 +571,40 @@ async def check_gauge_threshold(instrument_id: str, value: dict):
 
 _cpu_sample: tuple = (0, 0)
 _perf_log: deque = deque(maxlen=100)
+_entropy: float = 0.0
+
+async def entropy_poller():
+    """Compute system entropy from multiple signals and broadcast to clients.
+
+    Entropy is a 0–1 composite of CPU load, memory pressure, workflow
+    velocity, listener count, and DJ status.  The frontend renders it
+    as a Lissajous scope whose figure degrades from clean curves into
+    dense chaos as entropy rises.
+    """
+    global _entropy
+    while True:
+        cpu = _read_cpu() / 100.0                              # 0–1
+        mem = _read_mem() / 100.0                              # 0–1
+
+        now = time.time()
+        recent = [t for t in _perf_log if now - t <= 5.0]
+        velocity = len(recent) / 5.0                           # events/sec
+
+        listeners = _radio_now.get("listeners", 0)
+        dj = 1.0 if _dj_state.get("connected") else 0.0
+
+        # weighted blend — velocity and DJ carry the most weight
+        e = (
+            cpu       * 0.15
+          + mem       * 0.10
+          + min(velocity / 3.0, 1.0) * 0.35
+          + min(listeners / 10.0, 1.0) * 0.15
+          + dj       * 0.25
+        )
+        _entropy = round(max(0.0, min(1.0, e)), 4)
+
+        await broker.broadcast("entropy", {"value": _entropy})
+        await asyncio.sleep(2)
 
 def _read_cpu() -> float:
     global _cpu_sample
@@ -615,6 +649,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(site_health_poller())
     asyncio.create_task(wifi_poller())
     asyncio.create_task(net_blinken_poller())
+    asyncio.create_task(entropy_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -775,6 +810,10 @@ async def sysmetrics():
     v_prev = len([t for t in _perf_log if 2.5 < now - t <= 5.0]) / 2.5
     accel  = round(v_now - v_prev, 2)
     return {"cpu": cpu, "mem": mem, "velocity": velocity, "accel": accel}
+
+@app.get("/api/entropy")
+async def get_entropy():
+    return {"value": _entropy}
 
 # ---------------------------------------------------------------------------
 # Routes — instrument updates
