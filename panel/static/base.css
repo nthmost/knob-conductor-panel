@@ -218,12 +218,17 @@ html, body {
   gap: 0.5rem;
   position: sticky;
   top: 1rem;
+  height: calc(100vh - 80px);
   max-height: calc(100vh - 80px);
   overflow: hidden;
 }
+#ticker-section > #np-card,
+#ticker-section > #dj-connect-box {
+  flex-shrink: 0;
+}
 #ticker-box {
   flex: 1 1 0;
-  min-height: 0;
+  min-height: 120px;
   background: #080818;
   border: 1px solid #0a2a3a;
   border-radius: var(--radius-card);
