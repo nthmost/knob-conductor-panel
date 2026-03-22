@@ -142,10 +142,7 @@ async def radio_poller():
                 listeners = data.get("listeners", 0)
                 if listeners != _prev_listeners:
                     _prev_listeners = listeners
-                    await _update("gauge", "listeners", {
-                        "value": listeners,
-                        "_meta": {"label": "LISTENERS", "section": "STREAM"},
-                    })
+                    # Listener count now shown via blinken LEDs 0-7 on rack A
 
                 artist = data.get("artist", "")
                 title  = data.get("title", "")
