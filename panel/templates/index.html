@@ -1808,17 +1808,54 @@ function tickCountdown() {
 // ─────────────────────────────────────────────
 // Stream player
 // ─────────────────────────────────────────────
+let _streamWanted = false;  // true when user has clicked play
+let _streamRetryTimer = null;
+
 function toggleStream() {
   const audio = document.getElementById('np-audio');
   const btn   = document.getElementById('np-play-btn');
   if (audio.paused) {
-    audio.play().then(() => btn.classList.add('playing'))
-                .catch(() => {});
+    _streamWanted = true;
+    _startStream(audio, btn);
   } else {
+    _streamWanted = false;
+    clearTimeout(_streamRetryTimer);
     audio.pause();
     btn.classList.remove('playing');
   }
-  audio.onended = () => btn.classList.remove('playing');
+}
+
+function _startStream(audio, btn) {
+  // Reset src to force a fresh connection (avoids stale cached stream)
+  audio.src = '/stream?' + Date.now();
+  audio.load();
+  audio.play().then(() => btn.classList.add('playing'))
+              .catch(() => {});
+}
+
+function _initStreamRecovery() {
+  const audio = document.getElementById('np-audio');
+  const btn   = document.getElementById('np-play-btn');
+
+  function scheduleRetry() {
+    if (!_streamWanted) return;
+    btn.classList.remove('playing');
+    clearTimeout(_streamRetryTimer);
+    _streamRetryTimer = setTimeout(() => {
+      if (_streamWanted) _startStream(audio, btn);
+    }, 3000);
+  }
+
+  audio.addEventListener('ended', scheduleRetry);
+  audio.addEventListener('error', scheduleRetry);
+  audio.addEventListener('stalled', () => {
+    // stalled fires when data stops arriving; wait a bit then recover
+    if (!_streamWanted) return;
+    clearTimeout(_streamRetryTimer);
+    _streamRetryTimer = setTimeout(() => {
+      if (_streamWanted && audio.paused) _startStream(audio, btn);
+    }, 8000);
+  });
 }
 
 function applyRadioData(d) {
@@ -1919,6 +1956,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateRadio();
   _intervals.push(setInterval(updateRadio, 5000));
   startCountdown();
+  _initStreamRecovery();
   startEntropyScope();
   fetch('/api/entropy').then(r => r.json()).then(d => { _entropyTarget = d.value; }).catch(() => {});
 });
