@@ -10,9 +10,9 @@ Live at **knob.nthmost.com**
 
 ## What it does
 
-- **Now Playing** — live track info, artist, progress bar, source badge (AutoDJ / Pandora's Box / Noisefloor / Live DJ), in-browser stream playback
+- **Now Playing** — live track info, artist, progress bar, source badge (AutoDJ / Pandora's Box / Noisefloor / Live DJ), in-browser stream playback with auto-reconnect
 - **Live DJ detection** — pulsing red badge when a DJ connects via Icecast/Shoutcast
-- **Genre Mode** — green pulsing badge and program bar when genre override is active
+- **Genre Mode** — green pulsing badge in now-playing card, program bar shows active genre, lamp indicator in STREAM section
 - **Listener LEDs** — channels 0-7 on rack A glow green, one LED per active listener
 - **Activity monitor** — scrolling log of track changes, DJ events, infrastructure alerts, and Conductor workflow events
 - **Entropy scope** — Lissajous oscilloscope reflecting composite system activity (CPU, memory, event velocity, listeners, DJ status)
