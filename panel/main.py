@@ -300,21 +300,23 @@ async def site_health_poller():
         while True:
             for site_id, cfg in SITE_MONITORS.items():
                 timeout_ms = cfg.get("timeout_ms", 5000)
-                up = False
+                status_code = 0
                 response_ms = timeout_ms  # default to max (down)
                 try:
                     t0 = time.time()
                     resp = await client.get(cfg["url"], timeout=timeout_ms / 1000)
                     response_ms = (time.time() - t0) * 1000
-                    up = resp.status_code < 400
-                    if not up:
+                    status_code = resp.status_code
+                    if status_code >= 400:
                         response_ms = timeout_ms
                 except Exception:
-                    up = False
+                    status_code = 0
                     response_ms = timeout_ms
 
+                up = status_code > 0 and status_code < 400
                 await _update("heartbeat", site_id, {
                     "response_ms": round(response_ms, 1) if up else -1,
+                    "status_code": status_code,
                     "timeout_ms": timeout_ms,
                     "url": cfg["url"],
                     "_meta": {"label": cfg["label"], "section": cfg["section"]},

@@ -270,6 +270,76 @@
     color: #00e5ff;
   }
 
+  /* ── Entropy Lissajous Scope ── */
+  #entropy-scope-section {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0 0.25rem;
+  }
+  #entropy-scope-frame {
+    background: #02020a;
+    border: 1px solid #0a1a2a;
+    padding: 2px;
+  }
+  #entropy-scope-bezel {
+    position: relative;
+    background: #010108;
+    border: 2px solid #0d2030;
+    border-radius: 50%;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      inset 0 0 30px rgba(0,229,255,0.03),
+      0 0 20px rgba(0,229,255,0.05);
+    overflow: hidden;
+  }
+  #entropy-canvas {
+    width: 200px;
+    height: 200px;
+    display: block;
+  }
+  #entropy-scope-label-top {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.28em;
+    color: #1a4a5a;
+    text-transform: uppercase;
+    z-index: 2;
+    pointer-events: none;
+  }
+  #entropy-scope-readout {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    z-index: 2;
+    pointer-events: none;
+  }
+  #entropy-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #1a4a5a;
+    letter-spacing: 0.1em;
+  }
+  #entropy-state {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: #00e5ff;
+    text-shadow: 0 0 8px rgba(0,229,255,0.4);
+  }
+
   /* ── Recently played entries ── */
   #ticker-label {
     font-family: 'Share Tech Mono', monospace;
@@ -425,6 +495,20 @@
   </div>
 
   <!-- Sidebar + instrument grid -->
+  <!-- ── Entropy Lissajous Scope ── -->
+  <div id="entropy-scope-section">
+    <div id="entropy-scope-frame">
+      <div id="entropy-scope-bezel">
+        <div id="entropy-scope-label-top">ENTROPY</div>
+        <canvas id="entropy-canvas" width="280" height="280"></canvas>
+        <div id="entropy-scope-readout">
+          <span id="entropy-value">0.000</span>
+          <span id="entropy-state">DORMANT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="main-content">
     <div id="ticker-section">
 
@@ -621,6 +705,179 @@ function updateSignalBars(id, value) {
       label.style.color = color;
     }
   }
+}
+
+// ─────────────────────────────────────────────
+// Entropy Lissajous Scope
+// ─────────────────────────────────────────────
+let _entropyValue = 0;
+let _entropyTarget = 0;
+let _entropyRaf = null;
+let _entropyPhase = 0;
+
+function startEntropyScope() {
+  const canvas = document.getElementById('entropy-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const S = 280;            // canvas logical size
+  canvas.width = S;
+  canvas.height = S;
+  const cx = S / 2, cy = S / 2;
+  const R = S * 0.38;       // drawing radius
+
+  // trail buffer — stores recent points for phosphor fade
+  const TRAIL_LEN = 1800;
+  const trail = new Float32Array(TRAIL_LEN * 2);
+  let trailHead = 0;
+  let trailCount = 0;
+
+  // frequency ratios — we lerp between clean and irrational
+  // clean ratios produce recognizable figures; irrational ones fill the circle
+  const CLEAN_A = 3, CLEAN_B = 2;  // 3:2 → trefoil
+  const CHAOS_A = Math.PI;         // irrational
+  const CHAOS_B = Math.E;          // irrational
+
+  let lastTs = 0;
+
+  function frame(ts) {
+    const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016;
+    lastTs = ts;
+
+    // smooth entropy toward target
+    _entropyValue += (_entropyTarget - _entropyValue) * 0.04;
+    const e = _entropyValue;
+
+    // frequency ratio drifts from clean to irrational
+    const freqA = CLEAN_A + (CHAOS_A - CLEAN_A) * e;
+    const freqB = CLEAN_B + (CHAOS_B - CLEAN_B) * e;
+
+    // speed increases with entropy
+    const speed = 0.8 + e * 2.5;
+    // phase jitter increases with entropy
+    const jitter = e * e * 0.15;
+    // amplitude wobble
+    const ampMod = 1.0 + Math.sin(_entropyPhase * 0.07) * e * 0.12;
+
+    _entropyPhase += dt * speed;
+
+    // compute new point
+    const phase = _entropyPhase;
+    const jx = jitter > 0 ? (Math.random() - 0.5) * jitter : 0;
+    const jy = jitter > 0 ? (Math.random() - 0.5) * jitter : 0;
+    const x = cx + R * ampMod * Math.sin(freqA * phase + jx);
+    const y = cy + R * ampMod * Math.sin(freqB * phase + Math.PI / 4 + jy);
+
+    // push to trail
+    const idx = trailHead * 2;
+    trail[idx] = x;
+    trail[idx + 1] = y;
+    trailHead = (trailHead + 1) % TRAIL_LEN;
+    if (trailCount < TRAIL_LEN) trailCount++;
+
+    // ── draw ──
+
+    // dim previous frame (phosphor decay)
+    // faster decay at low entropy (crisp figures), slower at high (dense fill)
+    const fadeAlpha = 0.08 + (1 - e) * 0.12;
+    ctx.fillStyle = `rgba(1,1,8,${fadeAlpha})`;
+    ctx.fillRect(0, 0, S, S);
+
+    // graticule — subtle cross-hairs
+    ctx.strokeStyle = 'rgba(0,229,255,0.04)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, 10); ctx.lineTo(cx, S - 10);
+    ctx.moveTo(10, cy); ctx.lineTo(S - 10, cy);
+    ctx.stroke();
+
+    // draw circle border
+    ctx.strokeStyle = 'rgba(0,229,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // pick color — transitions from green through cyan to hot pink
+    let r, g, b;
+    if (e < 0.3) {
+      // green → cyan
+      const t = e / 0.3;
+      r = 0;
+      g = Math.round(224 - t * 40);
+      b = Math.round(96 + t * 159);
+    } else if (e < 0.7) {
+      // cyan → amber
+      const t = (e - 0.3) / 0.4;
+      r = Math.round(t * 255);
+      g = Math.round(184 + t * 43);
+      b = Math.round(255 - t * 200);
+    } else {
+      // amber → hot pink/white
+      const t = (e - 0.7) / 0.3;
+      r = 255;
+      g = Math.round(227 - t * 180);
+      b = Math.round(55 + t * 200);
+    }
+    const color = `rgb(${r},${g},${b})`;
+
+    // draw trail — most recent points are brightest
+    const drawCount = Math.min(trailCount, TRAIL_LEN);
+    const startI = (trailHead - drawCount + TRAIL_LEN) % TRAIL_LEN;
+
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = color;
+
+    // draw last ~60 points as a bright connected line
+    const recentN = Math.min(60, drawCount);
+    const recentStart = (trailHead - recentN + TRAIL_LEN) % TRAIL_LEN;
+
+    ctx.strokeStyle = color;
+    ctx.shadowBlur = 8 + e * 12;
+    ctx.globalAlpha = 0.7 + e * 0.3;
+    ctx.beginPath();
+    for (let i = 0; i < recentN; i++) {
+      const pi = ((recentStart + i) % TRAIL_LEN) * 2;
+      if (i === 0) ctx.moveTo(trail[pi], trail[pi + 1]);
+      else ctx.lineTo(trail[pi], trail[pi + 1]);
+    }
+    ctx.stroke();
+
+    // bright dot at current position
+    ctx.fillStyle = color;
+    ctx.shadowBlur = 16 + e * 20;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, 2 + e * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // update readout
+    const valEl = document.getElementById('entropy-value');
+    const stateEl = document.getElementById('entropy-state');
+    if (valEl) valEl.textContent = e.toFixed(3);
+    if (stateEl) {
+      let label, labelColor;
+      if (e < 0.15)      { label = 'DORMANT';   labelColor = '#1a4a5a'; }
+      else if (e < 0.35) { label = 'NOMINAL';   labelColor = '#00e060'; }
+      else if (e < 0.55) { label = 'ELEVATED';  labelColor = '#00e5ff'; }
+      else if (e < 0.75) { label = 'HIGH';      labelColor = '#ffb020'; }
+      else if (e < 0.90) { label = 'CRITICAL';  labelColor = '#ff6020'; }
+      else               { label = 'MELTDOWN';  labelColor = '#ff003c'; }
+      stateEl.textContent = label;
+      stateEl.style.color = labelColor;
+      stateEl.style.textShadow = `0 0 8px ${labelColor}`;
+    }
+
+    _entropyRaf = requestAnimationFrame(frame);
+  }
+
+  _entropyRaf = requestAnimationFrame(frame);
+}
+
+function stopEntropyScope() {
+  if (_entropyRaf) { cancelAnimationFrame(_entropyRaf); _entropyRaf = null; }
 }
 
 // ─────────────────────────────────────────────
@@ -985,13 +1242,25 @@ function drawHeartbeat(id, value) {
   if (!inst) return;
   if (!inst._hbHistory) inst._hbHistory = [];
 
-  const responseMs = value.response_ms ?? -1;
-  const timeoutMs  = value.timeout_ms  ?? 5000;
-  const isDown     = responseMs < 0 || responseMs >= timeoutMs;
+  const responseMs  = value.response_ms ?? -1;
+  const timeoutMs   = value.timeout_ms  ?? 5000;
+  const statusCode  = value.status_code ?? 0;
 
-  // Push new sample: 1.0 = instant, 0.0 = timeout/dead
-  const health = isDown ? 0 : Math.max(0, 1 - responseMs / timeoutMs);
-  inst._hbHistory.push(health);
+  // Three-tier state: "up" (2xx/3xx), "degraded" (4xx), "down" (5xx/0/timeout)
+  let state;
+  if (statusCode === 0 || statusCode >= 500)  state = 'down';
+  else if (statusCode >= 400)                  state = 'degraded';
+  else                                         state = 'up';
+
+  // Health value: up = response-time based (1.0=instant, 0.0=timeout)
+  //               degraded = fixed 0.25 (weak pulse)
+  //               down = 0 (flatline)
+  let health;
+  if (state === 'up')        health = Math.max(0.05, 1 - responseMs / timeoutMs);
+  else if (state === 'degraded') health = 0.25;
+  else                        health = 0;
+
+  inst._hbHistory.push({ health, state, statusCode });
   while (inst._hbHistory.length > HB_MAX_SAMPLES) inst._hbHistory.shift();
 
   const canvas = document.getElementById(`hb-canvas-${id}`);
@@ -1011,13 +1280,14 @@ function drawHeartbeat(id, value) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
-  // Choose color based on latest health
-  const latest = history[history.length - 1] ?? 0;
+  // Choose color based on latest state
+  const latest = history[history.length - 1];
   let color;
-  if (latest === 0)      color = '#ff2040';  // flatline red
-  else if (latest < 0.3) color = '#ff6020';  // bad orange
-  else if (latest < 0.6) color = '#ffb020';  // amber
-  else                   color = '#00e060';  // healthy green
+  if (latest.state === 'down')          color = '#ff2040';  // flatline red
+  else if (latest.state === 'degraded') color = '#ff8020';  // degraded orange
+  else if (latest.health < 0.3)         color = '#ff6020';  // slow orange
+  else if (latest.health < 0.6)         color = '#ffb020';  // amber
+  else                                  color = '#00e060';  // healthy green
 
   // Draw ECG trace
   const midY = H * 0.65;  // baseline sits low
@@ -1032,7 +1302,8 @@ function drawHeartbeat(id, value) {
 
   for (let i = 0; i < history.length; i++) {
     const x = startX + i * slotW;
-    const h = history[i];
+    const sample = history[i];
+    const h = sample.health;
 
     if (h === 0) {
       // Flatline — stay on baseline
@@ -1040,6 +1311,7 @@ function drawHeartbeat(id, value) {
       else ctx.lineTo(x + slotW, midY);
     } else {
       // ECG-style pulse: baseline → small dip → sharp spike → undershoot → baseline
+      // Degraded state gets a weak, irregular pulse; healthy gets full spike
       const peakH = h * (H * 0.55);  // spike height proportional to health
       const x0 = x;
       const x1 = x + slotW * 0.15;
@@ -1053,7 +1325,7 @@ function drawHeartbeat(id, value) {
       ctx.lineTo(x1, midY);                      // flat lead-in
       ctx.lineTo(x2, midY + H * 0.06);           // small P-wave dip
       ctx.lineTo(x3, midY - peakH);              // QRS spike up
-      ctx.lineTo(x4, midY + H * 0.1);            // undershoot
+      ctx.lineTo(x4, midY + H * 0.1 * h);        // undershoot (smaller for degraded)
       ctx.lineTo(x5, midY - H * 0.04 * h);       // small T-wave bump
       ctx.lineTo(x6, midY);                      // return to baseline
     }
@@ -1064,9 +1336,12 @@ function drawHeartbeat(id, value) {
   // Status label
   const lbl = document.getElementById(`hb-label-${id}`);
   if (lbl) {
-    if (isDown) {
+    if (latest.state === 'down') {
       lbl.textContent = 'DOWN';
       lbl.style.color = '#ff2040';
+    } else if (latest.state === 'degraded') {
+      lbl.textContent = `${latest.statusCode}`;
+      lbl.style.color = '#ff8020';
     } else {
       lbl.textContent = `${Math.round(responseMs)}ms`;
       lbl.style.color = color;
@@ -1170,6 +1445,11 @@ function connectSSE() {
     const d = JSON.parse(e.data);
     const badge = document.getElementById('np-dj-badge');
     if (badge) badge.classList.toggle('active', !!d.connected);
+  });
+
+  es.addEventListener('entropy', e => {
+    const d = JSON.parse(e.data);
+    _entropyTarget = d.value;
   });
 
   es.addEventListener('reset', () => {
@@ -1619,6 +1899,8 @@ window.addEventListener('DOMContentLoaded', () => {
   updateRadio();
   _intervals.push(setInterval(updateRadio, 5000));
   startCountdown();
+  startEntropyScope();
+  fetch('/api/entropy').then(r => r.json()).then(d => { _entropyTarget = d.value; }).catch(() => {});
 });
 
 window.addEventListener('beforeunload', () => {
@@ -1627,6 +1909,7 @@ window.addEventListener('beforeunload', () => {
   if (_sseReconnectTimer) clearTimeout(_sseReconnectTimer);
   Object.keys(coilAnims).forEach(id => stopCoilAnim(id));
   stopArcStorm();
+  stopEntropyScope();
   if (bgStop) bgStop();
 });
 
