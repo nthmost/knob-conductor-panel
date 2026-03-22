@@ -150,6 +150,35 @@
     <button class="btn" onclick="sendTicker()">SEND</button>
   </div>
 
+  <!-- ── Genre Mode ── -->
+  <h2>Genre Mode</h2>
+  <div class="control-group" id="genre-control">
+    <p style="color:var(--text-dim); font-size:0.75rem; margin-bottom:0.8rem; font-family:var(--font-mono);">
+      Override the station to play tracks from a specific genre. Takes effect after the current track.
+    </p>
+    <div id="genre-status" style="font-family:var(--font-mono); font-size:0.8rem; margin-bottom:0.8rem; color:var(--text-dim);">
+      Loading...
+    </div>
+    <div class="inline-row">
+      <div>
+        <label>Genre</label>
+        <select id="genre-select">
+          <option value="">Loading genres...</option>
+        </select>
+      </div>
+      <div>
+        <label>Subgenre (optional)</label>
+        <select id="subgenre-select">
+          <option value="">— all —</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:0.6rem;">
+      <button class="btn" onclick="setGenre()">ACTIVATE</button>
+      <button class="btn btn-danger" onclick="clearGenre()">CLEAR GENRE MODE</button>
+    </div>
+  </div>
+
   <!-- ── Storm ── -->
   <h2>Trigger Storm</h2>
   <div class="control-group">
@@ -319,6 +348,72 @@ async function loadInstruments() {
   }
 }
 
+// ── Genre Mode ──
+let _genreData = {};
+
+async function loadGenres() {
+  try {
+    const r = await fetch('/api/genres');
+    const d = await r.json();
+    _genreData = d.genres || {};
+    const sel = document.getElementById('genre-select');
+    sel.innerHTML = '<option value="">— select genre —</option>';
+    for (const name of Object.keys(_genreData).sort()) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = `${name} (${_genreData[name].count || 0})`;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', () => updateSubgenres());
+  } catch(e) {
+    document.getElementById('genre-select').innerHTML = '<option value="">Error loading</option>';
+  }
+  loadGenreStatus();
+}
+
+function updateSubgenres() {
+  const genre = document.getElementById('genre-select').value;
+  const sel = document.getElementById('subgenre-select');
+  sel.innerHTML = '<option value="">— all —</option>';
+  if (genre && _genreData[genre] && _genreData[genre].subgenres) {
+    for (const sub of Object.keys(_genreData[genre].subgenres).sort()) {
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = `${sub} (${_genreData[genre].subgenres[sub]})`;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+async function loadGenreStatus() {
+  try {
+    const r = await fetch('/api/genre');
+    const d = await r.json();
+    const el = document.getElementById('genre-status');
+    if (d.active) {
+      const label = d.subgenre ? `${d.genre} / ${d.subgenre}` : d.genre;
+      el.innerHTML = `<span style="color:#00ff88;">⬢ ACTIVE:</span> ${label}`;
+    } else {
+      el.innerHTML = '<span style="color:var(--text-dim);">⬡ INACTIVE</span>';
+    }
+  } catch(e) {}
+}
+
+async function setGenre() {
+  const genre = document.getElementById('genre-select').value;
+  if (!genre) return toast('Select a genre');
+  const subgenre = document.getElementById('subgenre-select').value || undefined;
+  const body = { genre };
+  if (subgenre) body.subgenre = subgenre;
+  await api('POST', '/api/genre', body);
+  loadGenreStatus();
+}
+
+async function clearGenre() {
+  await api('DELETE', '/api/genre');
+  loadGenreStatus();
+}
+
 // Enter key sends ticker
 document.getElementById('ticker-msg').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendTicker();
@@ -326,6 +421,8 @@ document.getElementById('ticker-msg').addEventListener('keydown', e => {
 
 loadInstruments();
 setInterval(loadInstruments, 10000);
+loadGenres();
+setInterval(loadGenreStatus, 5000);
 </script>
 </body>
 </html>

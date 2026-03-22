@@ -823,6 +823,43 @@ async def get_radio():
 async def get_radio_history():
     return list(_radio_history)
 
+@app.get("/api/genres")
+async def get_genres():
+    """Proxy genre list from radio API."""
+    if not RADIO_API_URL:
+        return {"genres": []}
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{RADIO_API_URL}/api/genres", timeout=5.0)
+        return r.json()
+
+@app.get("/api/genre")
+async def get_genre():
+    """Proxy current genre override status from radio API."""
+    if not RADIO_API_URL:
+        return {"active": False}
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{RADIO_API_URL}/api/genre", timeout=5.0)
+        return r.json()
+
+@app.post("/api/genre")
+async def set_genre(request: Request):
+    """Proxy genre set to radio API."""
+    if not RADIO_API_URL:
+        return {"ok": False, "error": "no radio API"}
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{RADIO_API_URL}/api/genre", json=body, timeout=5.0)
+        return r.json()
+
+@app.delete("/api/genre")
+async def clear_genre():
+    """Proxy genre clear to radio API."""
+    if not RADIO_API_URL:
+        return {"ok": False, "error": "no radio API"}
+    async with httpx.AsyncClient() as client:
+        r = await client.delete(f"{RADIO_API_URL}/api/genre", timeout=5.0)
+        return r.json()
+
 # ---------------------------------------------------------------------------
 # Routes — state snapshot
 # ---------------------------------------------------------------------------
