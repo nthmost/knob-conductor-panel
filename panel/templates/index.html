@@ -270,24 +270,11 @@
     color: #00e5ff;
   }
 
-  /* ── Now-playing + Entropy row ── */
-  #np-entropy-row {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-    margin-top: 0.5rem;
-    margin-bottom: 0.25rem;
-  }
-  #np-entropy-row > #np-card {
-    flex: 0 0 480px;
-  }
-
   /* ── Entropy Lissajous Scope ── */
   #entropy-scope-section {
     display: flex;
     justify-content: flex-start;
-    flex: 0 0 auto;
-    padding: 0.5rem 0 0.25rem;
+    padding: 0 0 0.25rem;
   }
   #entropy-scope-frame {
     background: #02020a;
@@ -507,49 +494,31 @@
     </div>
   </div>
 
-  <!-- Now-playing + Entropy row (sits between blinken and main content) -->
-  <div id="np-entropy-row">
-    <!-- Now Playing card -->
-    <div id="np-card">
-      <audio id="np-audio" preload="none" src="/stream"></audio>
-      <button id="np-play-btn" onclick="toggleStream()" title="Listen to KNOB 87.9 FM"></button>
-      <div id="np-dj-badge">🎙 LIVE DJ ON AIR</div>
-      <div id="np-playing-indicator">
-        <span class="bar"></span><span class="bar"></span>
-        <span class="bar"></span><span class="bar"></span>
-      </div>
-      <div id="np-source-badge">AUTODJ</div>
-      <div id="np-artist">—</div>
-      <div id="np-title">—</div>
-      <div id="np-progress-outer"><div id="np-progress-fill"></div></div>
-      <div id="np-time-row">
-        <span id="np-elapsed">0:00</span>
-        <span id="np-remaining">--:--</span>
-      </div>
-      <!-- Up Next bar (inside np-card container) -->
-      <div id="np-next-bar">
-        <span id="np-next-label">CURRENT PROGRAM</span>
-        <span id="np-next-val">—</span>
-      </div>
-    </div>
-
-    <!-- Entropy Lissajous Scope -->
-    <div id="entropy-scope-section">
-      <div id="entropy-scope-frame">
-        <div id="entropy-scope-bezel">
-          <div id="entropy-scope-label-top">ENTROPY</div>
-          <canvas id="entropy-canvas" width="280" height="280"></canvas>
-          <div id="entropy-scope-readout">
-            <span id="entropy-value">0.000</span>
-            <span id="entropy-state">DORMANT</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="main-content">
     <div id="ticker-section">
+
+      <!-- Now Playing card -->
+      <div id="np-card">
+        <audio id="np-audio" preload="none" src="/stream"></audio>
+        <button id="np-play-btn" onclick="toggleStream()" title="Listen to KNOB 87.9 FM"></button>
+        <div id="np-dj-badge">🎙 LIVE DJ ON AIR</div>
+        <div id="np-playing-indicator">
+          <span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span>
+        </div>
+        <div id="np-source-badge">AUTODJ</div>
+        <div id="np-artist">—</div>
+        <div id="np-title">—</div>
+        <div id="np-progress-outer"><div id="np-progress-fill"></div></div>
+        <div id="np-time-row">
+          <span id="np-elapsed">0:00</span>
+          <span id="np-remaining">--:--</span>
+        </div>
+        <div id="np-next-bar">
+          <span id="np-next-label">CURRENT PROGRAM</span>
+          <span id="np-next-val">—</span>
+        </div>
+      </div>
 
       <!-- DJ connection info -->
       <div id="dj-connect-box">
@@ -566,6 +535,19 @@
 
     </div>
     <div id="instruments-grid">
+      <!-- Entropy Lissajous Scope -->
+      <div id="entropy-scope-section">
+        <div id="entropy-scope-frame">
+          <div id="entropy-scope-bezel">
+            <div id="entropy-scope-label-top">ENTROPY</div>
+            <canvas id="entropy-canvas" width="280" height="280"></canvas>
+            <div id="entropy-scope-readout">
+              <span id="entropy-value">0.000</span>
+              <span id="entropy-state">DORMANT</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- STREAM section: genre card + dynamic Conductor instruments -->
       <div class="section-box" id="section-box-stream">
         <div class="section-box-title">STREAM</div>
