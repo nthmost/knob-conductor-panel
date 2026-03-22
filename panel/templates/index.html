@@ -1289,7 +1289,7 @@ function drawHeartbeat(id, value) {
   const latest = history[history.length - 1];
   let color;
   if (latest.state === 'down')          color = '#ff2040';  // flatline red
-  else if (latest.state === 'degraded') color = '#ff8020';  // degraded orange
+  else if (latest.state === 'degraded') color = '#ffcc00';  // impacted yellow
   else if (latest.health < 0.3)         color = '#ff6020';  // slow orange
   else if (latest.health < 0.6)         color = '#ffb020';  // amber
   else                                  color = '#00e060';  // healthy green
@@ -1345,8 +1345,8 @@ function drawHeartbeat(id, value) {
       lbl.textContent = 'DOWN';
       lbl.style.color = '#ff2040';
     } else if (latest.state === 'degraded') {
-      lbl.textContent = `${latest.statusCode}`;
-      lbl.style.color = '#ff8020';
+      lbl.textContent = `IMPACTED (${latest.statusCode})`;
+      lbl.style.color = '#ffcc00';
     } else {
       lbl.textContent = `${Math.round(responseMs)}ms`;
       lbl.style.color = color;

@@ -322,12 +322,20 @@ async def site_health_poller():
                     "_meta": {"label": cfg["label"], "section": cfg["section"]},
                 })
 
-                # Ticker on state transitions
-                was_up = _site_status.get(site_id)
-                _site_status[site_id] = up
-                if was_up is not None and up != was_up:
-                    if up:
+                # Ticker on state transitions (three-tier: up / impacted / down)
+                if status_code > 0 and status_code < 400:
+                    current_state = 'up'
+                elif status_code >= 400 and status_code < 500:
+                    current_state = 'impacted'
+                else:
+                    current_state = 'down'
+                prev_state = _site_status.get(site_id)
+                _site_status[site_id] = current_state
+                if prev_state is not None and current_state != prev_state:
+                    if current_state == 'up':
                         msg = f"✅  {cfg['label']} is back UP ({int(response_ms)}ms)"
+                    elif current_state == 'impacted':
+                        msg = f"🟡  {cfg['label']} IMPACTED ({status_code})"
                     else:
                         msg = f"🔴  {cfg['label']} is DOWN"
                     with db_connect() as conn:
