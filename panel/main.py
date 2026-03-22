@@ -108,7 +108,7 @@ _radio_history: deque = deque(maxlen=RADIO_HISTORY_MAX)
 _dj_state: dict = {"connected": False, "client": None}
 _stream_start_ts: float = 0.0
 _prev_listeners: int = -1
-_prev_genre_active: bool = False
+_prev_genre_active: object = None  # None = not yet initialized
 
 async def _liquidsoap_cmd(cmd: str) -> str:
     """Send one command to Liquidsoap telnet, return first response line."""
