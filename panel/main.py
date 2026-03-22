@@ -459,21 +459,25 @@ async def net_blinken_poller():
 
 
 async def listener_blinken_poller():
-    """Blink LEDs 0-7 based on active listener count (green, staggered)."""
+    """Blink LEDs 0-7 based on active listener count (green, rotating).
+
+    Each tick blinks 1-2 listener LEDs in a rotating sweep, cycling fast
+    enough that all active LEDs stay visually lit (faster than blink decay).
+    """
     import random
+    cursor = 0
     while True:
         listeners = min(8, _radio_now.get("listeners", 0))
         if listeners > 0:
-            blinks = []
-            for ch in range(listeners):
-                blinks.append({"channel": ch, "color": "green"})
-            # stagger: pick a random subset each tick for natural flicker
-            if listeners > 1:
-                showing = random.sample(blinks, max(1, len(blinks) - random.randint(0, 1)))
-            else:
-                showing = blinks
-            await broker.broadcast("blink_batch", {"blinks": showing})
-        await asyncio.sleep(1.5)
+            # Blink the current LED, plus occasionally its neighbor
+            ch = cursor % listeners
+            blinks = [{"channel": ch, "color": "green"}]
+            if listeners > 1 and random.random() < 0.4:
+                neighbor = (ch + random.choice([-1, 1])) % listeners
+                blinks.append({"channel": neighbor, "color": "green"})
+            await broker.broadcast("blink_batch", {"blinks": blinks})
+            cursor += 1
+        await asyncio.sleep(0.15)
 
 
 # ---------------------------------------------------------------------------
