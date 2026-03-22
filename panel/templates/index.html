@@ -211,6 +211,20 @@
   #np-dj-badge.active { display: block; }
   @keyframes dj-pulse { from { opacity: 1; } to { opacity: 0.3; } }
 
+  #np-genre-badge {
+    display: none;
+    position: absolute;
+    top: 2.4rem; left: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: #00ff88;
+    text-shadow: 0 0 8px #00ff88;
+    animation: genre-pulse 2s ease-in-out infinite alternate;
+  }
+  #np-genre-badge.active { display: block; }
+  @keyframes genre-pulse { from { opacity: 1; } to { opacity: 0.5; } }
+
   /* ── Current Program bar ── */
   #np-next-bar {
     background: #04040f;
@@ -502,6 +516,7 @@
         <audio id="np-audio" preload="none" src="/stream"></audio>
         <button id="np-play-btn" onclick="toggleStream()" title="Listen to KNOB 87.9 FM"></button>
         <div id="np-dj-badge">🎙 LIVE DJ ON AIR</div>
+        <div id="np-genre-badge">⬢ GENRE MODE</div>
         <div id="np-playing-indicator">
           <span class="bar"></span><span class="bar"></span>
           <span class="bar"></span><span class="bar"></span>
@@ -550,18 +565,10 @@
           </div>
         </div>
       </div>
-      <!-- STREAM section: genre card + dynamic Conductor instruments -->
+      <!-- STREAM section: dynamic Conductor instruments -->
       <div class="section-box" id="section-box-stream">
         <div class="section-box-title">STREAM</div>
         <div class="section-box-cards" id="stream-cards">
-          <div class="card" id="card-genre-mode">
-            <div id="genre-mode-pip"></div>
-            <div id="genre-mode-body">
-              <div id="genre-mode-label">GENRE MODE</div>
-              <div id="genre-mode-name">—</div>
-              <div id="genre-mode-sub"></div>
-            </div>
-          </div>
         </div>
       </div>
       <div class="section-box" id="section-box-nb-infra">
@@ -1824,14 +1831,16 @@ function applyRadioData(d) {
   const newRem  = d.remaining || 0;
   if (d.stream_start_ts) _streamStartTs = d.stream_start_ts;
 
-  // Genre mode card
-  const genreCard = document.getElementById('card-genre-mode');
-  const genreName = document.getElementById('genre-mode-name');
-  const genreSub  = document.getElementById('genre-mode-sub');
+  // Genre mode badge (in now-playing card)
   const go = d.genre_override;
-  if (genreCard) genreCard.classList.toggle('active', !!go);
-  if (genreName) genreName.textContent = go ? (go.genre || '—') : '—';
-  if (genreSub)  genreSub.textContent  = go && go.subgenre ? go.subgenre : '';
+  const genreBadge = document.getElementById('np-genre-badge');
+  if (genreBadge) {
+    genreBadge.classList.toggle('active', !!go);
+    if (go) {
+      const gLabel = go.subgenre ? `⬢ ${go.genre} / ${go.subgenre}` : `⬢ ${go.genre || 'GENRE MODE'}`;
+      genreBadge.textContent = gLabel;
+    }
+  }
 
   // detect track change: reset progress
   const trackKey = `${artist}|${title}`;
@@ -1846,13 +1855,26 @@ function applyRadioData(d) {
   const titleEl  = document.getElementById('np-title');
   const badgeEl  = document.getElementById('np-source-badge');
   const nextEl   = document.getElementById('np-next-val');
+  const nextLbl  = document.getElementById('np-next-label');
   const djBadge  = document.getElementById('np-dj-badge');
   const indicator = document.getElementById('np-playing-indicator');
 
   if (artistEl) artistEl.textContent = artist || '—';
   if (titleEl)  titleEl.textContent  = title;
   if (badgeEl)  badgeEl.textContent  = source || 'AUTODJ';
-  if (nextEl)   nextEl.textContent   = nextSrc ? `${nextSrc} until ${nextHour}` : '—';
+
+  // Current program bar: show genre override when active, otherwise schedule
+  if (nextEl && nextLbl) {
+    if (go) {
+      nextLbl.textContent = 'GENRE MODE';
+      const genreText = go.subgenre ? `${go.genre} — ${go.subgenre}` : (go.genre || '—');
+      nextEl.textContent = genreText;
+    } else {
+      nextLbl.textContent = 'CURRENT PROGRAM';
+      nextEl.textContent = nextSrc ? `${nextSrc} until ${nextHour}` : '—';
+    }
+  }
+
   if (djBadge)  djBadge.classList.toggle('active', !!dj.connected);
   if (indicator) indicator.classList.toggle('paused', !!dj.connected === false && !artist);
 
