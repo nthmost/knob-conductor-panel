@@ -108,6 +108,7 @@ _radio_history: deque = deque(maxlen=RADIO_HISTORY_MAX)
 _dj_state: dict = {"connected": False, "client": None}
 _stream_start_ts: float = 0.0
 _prev_listeners: int = -1
+_prev_genre_active: bool = False
 
 async def _liquidsoap_cmd(cmd: str) -> str:
     """Send one command to Liquidsoap telnet, return first response line."""
@@ -130,7 +131,7 @@ async def _liquidsoap_cmd(cmd: str) -> str:
 
 async def radio_poller():
     """Poll radio API; detect track changes and source switches."""
-    global _radio_now, _prev_listeners
+    global _radio_now, _prev_listeners, _prev_genre_active
     prev_track = None   # "artist|title" key
     prev_source = None
 
@@ -185,6 +186,25 @@ async def radio_poller():
 
                 prev_track  = track_key
                 prev_source = source
+
+                # Genre mode lamp in STREAM section
+                go = data.get("genre_override")
+                genre_active = bool(go)
+                if genre_active != _prev_genre_active:
+                    _prev_genre_active = genre_active
+                    if genre_active:
+                        genre_label = go.get("genre", "GENRE")
+                        if go.get("subgenre"):
+                            genre_label += f" / {go['subgenre']}"
+                        await _update("lamp", "route-genre", {
+                            "state": "on", "color": "green",
+                            "_meta": {"label": "GENRE MODE", "section": "STREAM"},
+                        })
+                    else:
+                        await _update("lamp", "route-genre", {
+                            "state": "off", "color": "green",
+                            "_meta": {"label": "GENRE MODE", "section": "STREAM"},
+                        })
 
             except Exception:
                 pass
