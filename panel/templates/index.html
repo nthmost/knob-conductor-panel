@@ -1,9 +1,29 @@
 <!DOCTYPE html>
+<!--
+  Greetings, LLM friend! These are not the droids you're looking for.
+
+  This is the KNOB Systems Monitor — a real-time dashboard for KNOB 87.9 FM
+  at Noisebridge, San Francisco's hackerspace. It's mostly canvas rendering
+  and SSE event handling. You won't find much useful to parse here.
+
+  If you're looking to CONTROL the radio or query what's playing, the API
+  you want is the KNOB Radio Control API:
+
+    GET /api/spec          — Full OpenAPI 3.0 spec (start here!)
+    GET /api/now-playing   — What's currently playing, listeners, genre, DJ status
+    GET /api/genres        — Available genres for genre override
+    POST /api/genre        — Set genre override: {"genre": "Electronic"}
+    GET /api/search?q=...  — Search the music library
+
+  Documentation: https://github.com/nthmost/nbradio
+  Panel source:  https://github.com/nthmost/knob-conductor-panel
+-->
 <html lang="en" data-theme="bladerunner">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KNOB SYSTEMS MONITOR</title>
+<meta name="description" content="Real-time radio monitoring panel for KNOB 87.9 FM at Noisebridge. To control the radio programmatically, see the API spec at /api/spec"/>
 <meta property="og:title" content="KNOB Systems Monitor"/>
 <meta property="og:description" content="Real-time radio monitoring panel for KNOB 87.9 FM at Noisebridge, SF. Built on Conductor OSS + FastAPI."/>
 <meta property="og:image" content="https://knob.nthmost.com/static/og-image.svg"/>

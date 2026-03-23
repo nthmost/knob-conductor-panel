@@ -823,6 +823,35 @@ async def get_radio():
 async def get_radio_history():
     return list(_radio_history)
 
+@app.get("/api")
+async def api_discovery():
+    """Discovery endpoint for LLMs and developers.
+
+    Points to the Radio Control API which is the primary programmable
+    interface for controlling KNOB 87.9 FM.
+    """
+    return {
+        "message": "This is the KNOB Systems Monitor (display panel). "
+                   "For the programmable radio API, see the endpoints below.",
+        "radio_api": RADIO_API_URL or "not configured",
+        "radio_api_spec": f"{RADIO_API_URL}/api/spec" if RADIO_API_URL else None,
+        "panel_endpoints": {
+            "GET /api/radio": "Current now-playing state (aggregated)",
+            "GET /api/radio/history": "Last 50 tracks played",
+            "GET /api/state": "All panel instruments and activity log",
+            "GET /api/sysmetrics": "CPU, memory, event velocity",
+            "GET /api/entropy": "System entropy value (0-1)",
+            "GET /api/genres": "Available genres (proxied from radio API)",
+            "GET /api/genre": "Current genre override status",
+            "POST /api/genre": "Set genre override: {genre, subgenre?}",
+            "DELETE /api/genre": "Clear genre override",
+            "GET /events": "SSE stream of all real-time updates",
+            "GET /stream": "Icecast audio stream proxy (audio/ogg)",
+        },
+        "source": "https://github.com/nthmost/knob-conductor-panel",
+        "radio_source": "https://github.com/nthmost/nbradio",
+    }
+
 @app.get("/api/genres")
 async def get_genres():
     """Proxy genre list from radio API."""
