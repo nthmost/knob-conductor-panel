@@ -294,6 +294,44 @@ async def icecast_poller():
 
 
 # ---------------------------------------------------------------------------
+# Noisebridge open/closed status (via noisebell)
+# ---------------------------------------------------------------------------
+
+NOISEBELL_URL = "https://noisebell.extremist.software/status"
+_nb_status: dict = {"status": "unknown", "since": 0}
+
+async def noisebell_poller():
+    """Poll noisebell every 30s for Noisebridge open/closed status."""
+    global _nb_status
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                resp = await client.get(NOISEBELL_URL, timeout=5.0)
+                data = resp.json()
+                new_status = data.get("status", "unknown")
+                old_status = _nb_status.get("status")
+                _nb_status = data
+
+                await broker.broadcast("noisebridge_status", data)
+
+                # Ticker on transitions
+                if old_status not in (None, "unknown") and new_status != old_status:
+                    if new_status == "open":
+                        msg = "🟢  Noisebridge is OPEN"
+                    else:
+                        msg = "🔴  Noisebridge is CLOSED"
+                    with db_connect() as conn:
+                        add_ticker(conn, msg, "SPACE")
+                        conn.commit()
+                    await broker.broadcast("ticker", {
+                        "message": msg, "source": "SPACE", "ts": time.time(),
+                    })
+            except Exception:
+                pass
+            await asyncio.sleep(30)
+
+
+# ---------------------------------------------------------------------------
 # Site health monitoring
 # ---------------------------------------------------------------------------
 
@@ -697,6 +735,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(wifi_poller())
     asyncio.create_task(net_blinken_poller())
     asyncio.create_task(entropy_poller())
+    asyncio.create_task(noisebell_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -932,6 +971,10 @@ async def sysmetrics():
 @app.get("/api/entropy")
 async def get_entropy():
     return {"value": _entropy}
+
+@app.get("/api/noisebridge")
+async def get_noisebridge_status():
+    return _nb_status
 
 # ---------------------------------------------------------------------------
 # Routes — instrument updates

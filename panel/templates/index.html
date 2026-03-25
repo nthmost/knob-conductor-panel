@@ -61,6 +61,64 @@
     text-align: right;
   }
 
+  /* ── Noisebridge open/closed widget ── */
+  #nb-status-widget {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--panel-border, #0a1a2a);
+    border-radius: 4px;
+    background: #060612;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  #nb-status-widget.open {
+    border-color: #00ff88;
+    box-shadow: 0 0 12px rgba(0,255,136,0.15);
+  }
+  #nb-status-widget.closed {
+    border-color: #ff2040;
+    box-shadow: 0 0 12px rgba(255,32,64,0.1);
+  }
+  #nb-status-pip {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--text-dim, #334);
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  #nb-status-widget.open #nb-status-pip {
+    background: #00ff88;
+    box-shadow: 0 0 8px #00ff88, 0 0 20px rgba(0,255,136,0.3);
+    animation: nb-pulse 2s ease-in-out infinite alternate;
+  }
+  #nb-status-widget.closed #nb-status-pip {
+    background: #ff2040;
+    box-shadow: 0 0 6px rgba(255,32,64,0.4);
+  }
+  @keyframes nb-pulse { from { opacity: 1; } to { opacity: 0.6; } }
+  #nb-status-label {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim, #556);
+    text-transform: uppercase;
+  }
+  #nb-status-value {
+    font-family: var(--font-display, sans-serif);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    color: var(--text-dim, #556);
+    transition: color 0.4s, text-shadow 0.4s;
+  }
+  #nb-status-widget.open #nb-status-value {
+    color: #00ff88;
+    text-shadow: 0 0 8px rgba(0,255,136,0.4);
+  }
+  #nb-status-widget.closed #nb-status-value {
+    color: #ff2040;
+    text-shadow: 0 0 6px rgba(255,32,64,0.3);
+  }
+
   /* signal bars */
   .signal-bars {
     display: flex;
@@ -486,6 +544,13 @@
     <div>
       <div id="panel-title"><a href="/control" style="color:inherit;text-decoration:none;cursor:default;" title="">◈</a> KNOB SYSTEMS MONITOR</div>
       <div id="panel-subtitle">KNOB 87.9 FM — NOISEBRIDGE — <span id="clock"></span> — v0.1.1</div>
+    </div>
+    <div id="nb-status-widget">
+      <div id="nb-status-pip"></div>
+      <div id="nb-status-text">
+        <div id="nb-status-label">NOISEBRIDGE</div>
+        <div id="nb-status-value">—</div>
+      </div>
     </div>
     <a href="https://github.com/nthmost/knob-conductor-panel" target="_blank"
        style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim);
@@ -1486,6 +1551,10 @@ function connectSSE() {
     _entropyTarget = d.value;
   });
 
+  es.addEventListener('noisebridge_status', e => {
+    applyNBStatus(JSON.parse(e.data));
+  });
+
   es.addEventListener('reset', () => {
     document.querySelectorAll('.lamp-bulb').forEach(el => el.className = 'lamp-bulb');
     document.getElementById('ticker-entries').innerHTML = '';
@@ -1837,6 +1906,42 @@ function tickCountdown() {
 // ─────────────────────────────────────────────
 // Stream player
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Noisebridge open/closed status
+// ─────────────────────────────────────────────
+function applyNBStatus(d) {
+  const widget = document.getElementById('nb-status-widget');
+  const value  = document.getElementById('nb-status-value');
+  if (!widget || !value) return;
+
+  const status = d.status || 'unknown';
+  widget.classList.remove('open', 'closed');
+  if (status === 'open') {
+    widget.classList.add('open');
+    value.textContent = 'OPEN';
+  } else if (status === 'closed') {
+    widget.classList.add('closed');
+    value.textContent = 'CLOSED';
+  } else {
+    value.textContent = '—';
+  }
+
+  // Show duration in the label
+  const label = document.getElementById('nb-status-label');
+  if (label && d.since) {
+    const mins = Math.floor((Date.now() / 1000 - d.since) / 60);
+    if (mins < 60) {
+      label.textContent = `NOISEBRIDGE · ${mins}m`;
+    } else {
+      const hrs = Math.floor(mins / 60);
+      label.textContent = `NOISEBRIDGE · ${hrs}h ${mins % 60}m`;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Stream player
+// ─────────────────────────────────────────────
 let _streamWanted = false;  // true when user has clicked play
 let _streamRetryTimer = null;
 
@@ -1988,6 +2093,7 @@ window.addEventListener('DOMContentLoaded', () => {
   _initStreamRecovery();
   startEntropyScope();
   fetch('/api/entropy').then(r => r.json()).then(d => { _entropyTarget = d.value; }).catch(() => {});
+  fetch('/api/noisebridge').then(r => r.json()).then(applyNBStatus).catch(() => {});
 });
 
 window.addEventListener('beforeunload', () => {
