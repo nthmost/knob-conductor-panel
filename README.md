@@ -10,17 +10,19 @@ Live at **knob.nthmost.com**
 
 ## What it does
 
+- **Noisebridge open/closed** — prominent header widget showing whether the space is open or closed, with duration, powered by [noisebell](https://noisebell.extremist.software/status)
 - **Now Playing** — live track info, artist, progress bar, source badge (AutoDJ / Pandora's Box / Noisefloor / Live DJ), in-browser stream playback with auto-reconnect
 - **Live DJ detection** — pulsing red badge when a DJ connects via Icecast/Shoutcast
-- **Genre Mode** — green pulsing badge in now-playing card, program bar shows active genre, lamp indicator in STREAM section
+- **Genre Mode** — green pulsing badge in now-playing card, program bar shows active genre, lamp indicator in STREAM section; controllable from `/control` panel
 - **Listener LEDs** — channels 0-7 on rack A glow green, one LED per active listener
-- **Activity monitor** — scrolling log of track changes, DJ events, infrastructure alerts, and Conductor workflow events
+- **Activity monitor** — scrolling log of track changes, DJ events, space open/closed, infrastructure alerts, and Conductor workflow events
 - **Entropy scope** — Lissajous oscilloscope reflecting composite system activity (CPU, memory, event velocity, listeners, DJ status)
 - **Site health heartbeats** — three-tier monitoring of noisebridge.net and noisebridge.eu (UP / IMPACTED / DOWN) with ECG-style waveforms
 - **WiFi signal monitor** — signal quality bars from `/proc/net/wireless`
 - **Network blinken** — LEDs 8-15 (rx, blue) and 16-31 (tx, amber) driven by real network traffic
 - **Instrument panel** — gauges, lamps, knife switches, tesla coils, and blinken-lights driven by Conductor workflows
 - **Conductor workflows** — radio-themed workflows (RF scanning, carrier checks, signal routing) that keep the panel looking alive
+- **LLM-discoverable** — HTML comments, meta tags, and `/api` discovery endpoint guide LLMs to the radio API spec
 
 ## Architecture
 
@@ -48,6 +50,7 @@ Icecast / Liquidsoap
 | `wifi_poller` | 10s | `/proc/net/wireless` | Signal bars card |
 | `net_blinken_poller` | 2s | `/proc/net/dev` | Network LEDs (8-15 rx, 16-31 tx) |
 | `entropy_poller` | 2s | Composite calculation | Lissajous scope |
+| `noisebell_poller` | 30s | noisebell.extremist.software/status | Open/closed widget, activity log |
 
 ### Blinken LED layout
 
@@ -205,6 +208,8 @@ The bundled workflows in `workflows/register_workflows.py` illustrate all panel 
 | `GET /api/state` | All instruments + ticker log |
 | `GET /api/sysmetrics` | CPU %, memory %, event velocity |
 | `GET /api/entropy` | Current entropy value (0-1) |
+| `GET /api/noisebridge` | Noisebridge open/closed status (from noisebell) |
+| `GET /api` | API discovery endpoint (for LLMs and developers) |
 | `GET /stream` | Icecast stream proxy (avoids mixed-content) |
 
 ### Write (instrument state)
