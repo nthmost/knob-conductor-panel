@@ -294,6 +294,45 @@ async def icecast_poller():
 
 
 # ---------------------------------------------------------------------------
+# FlaschenTaschen live frame
+# ---------------------------------------------------------------------------
+
+FT_BRIDGE_URL = os.getenv("FT_BRIDGE_URL", "http://localhost:8877")
+FT_POLL_INTERVAL = 3  # seconds
+FT_REBROADCAST_EVERY = 10  # re-send current frame every N polls so new viewers get it
+
+_ft_cached: dict | None = None  # last known frame payload
+
+async def ft_poller():
+    """Poll ft_bridge for current frame and broadcast to panel viewers."""
+    global _ft_cached
+    async with httpx.AsyncClient() as client:
+        last_frame = None
+        polls_since_broadcast = 0
+        while True:
+            try:
+                resp = await client.get(f"{FT_BRIDGE_URL}/frame", timeout=3.0)
+                data = resp.json()
+                frame = data.get("frame")
+                if frame:
+                    payload = {
+                        "frame": frame,
+                        "width": data.get("width", 45),
+                        "height": data.get("height", 35),
+                    }
+                    changed = frame != last_frame
+                    last_frame = frame
+                    polls_since_broadcast += 1
+                    if changed or polls_since_broadcast >= FT_REBROADCAST_EVERY:
+                        _ft_cached = payload
+                        await broker.broadcast("ft_frame", payload)
+                        polls_since_broadcast = 0
+            except Exception:
+                pass
+            await asyncio.sleep(FT_POLL_INTERVAL)
+
+
+# ---------------------------------------------------------------------------
 # Noisebridge open/closed status (via noisebell)
 # ---------------------------------------------------------------------------
 
@@ -736,6 +775,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(net_blinken_poller())
     asyncio.create_task(entropy_poller())
     asyncio.create_task(noisebell_poller())
+    asyncio.create_task(ft_poller())
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -951,6 +991,10 @@ def api_state():
             "SELECT message, source, ts FROM ticker_log ORDER BY id DESC LIMIT 50"
         ).fetchall()]
     return {"instruments": instruments, "ticker": ticker}
+
+@app.get("/api/ft/frame")
+def api_ft_frame():
+    return _ft_cached or {"frame": None}
 
 # ---------------------------------------------------------------------------
 # Routes — sysmetrics

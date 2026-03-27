@@ -441,6 +441,52 @@
     text-shadow: 0 0 8px rgba(0,229,255,0.4);
   }
 
+  /* ── FlaschenTaschen live display ── */
+  #ft-scope-section {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 0 0.25rem;
+  }
+  #ft-scope-frame {
+    background: #02020a;
+    border: 1px solid #0a1a2a;
+    padding: 2px;
+  }
+  #ft-scope-bezel {
+    position: relative;
+    background: #010108;
+    border: 2px solid #0d2030;
+    border-radius: 8px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow:
+      inset 0 0 20px rgba(0,229,255,0.03),
+      0 0 15px rgba(0,229,255,0.05);
+  }
+  #ft-canvas {
+    display: block;
+    image-rendering: pixelated;
+    background: #000;
+    border-radius: 3px;
+  }
+  #ft-scope-label-top {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.25em;
+    color: #1a4a5a;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  #ft-scope-label-bottom {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.45rem;
+    letter-spacing: 0.2em;
+    color: #0d2535;
+    margin-top: 3px;
+  }
+
   /* ── Recently played entries ── */
   #ticker-label {
     font-family: 'Share Tech Mono', monospace;
@@ -656,6 +702,16 @@
               <span id="entropy-value">0.000</span>
               <span id="entropy-state">DORMANT</span>
             </div>
+          </div>
+        </div>
+      </div>
+      <!-- FlaschenTaschen live display -->
+      <div id="ft-scope-section">
+        <div id="ft-scope-frame">
+          <div id="ft-scope-bezel">
+            <div id="ft-scope-label-top">FLASCHENTASCHEN</div>
+            <canvas id="ft-canvas" width="270" height="210"></canvas>
+            <div id="ft-scope-label-bottom">45 x 35</div>
           </div>
         </div>
       </div>
@@ -1555,6 +1611,11 @@ function connectSSE() {
     applyNBStatus(JSON.parse(e.data));
   });
 
+  es.addEventListener('ft_frame', e => {
+    const d = JSON.parse(e.data);
+    if (d.frame) renderFTFrame(d.frame, d.width || 45, d.height || 35);
+  });
+
   es.addEventListener('reset', () => {
     document.querySelectorAll('.lamp-bulb').forEach(el => el.className = 'lamp-bulb');
     document.getElementById('ticker-entries').innerHTML = '';
@@ -1577,6 +1638,12 @@ async function loadState() {
     if (Object.keys(inst.state).length) updateCard(inst.id, inst.kind, inst.state);
   }
   for (const t of [...ticker].reverse()) addTicker(t.message, t.ts, false);
+  // Load current FT frame
+  try {
+    const ftR = await fetch('/api/ft/frame');
+    const ftD = await ftR.json();
+    if (ftD.frame) renderFTFrame(ftD.frame, ftD.width || 45, ftD.height || 35);
+  } catch(e) {}
 }
 
 // ─────────────────────────────────────────────
@@ -2124,6 +2191,61 @@ document.addEventListener('keydown', e => {
     setTimeout(() => stopArcStorm(), 5000);
   }
 });
+
+// ─────────────────────────────────────────────
+// FlaschenTaschen live bottle display
+// ─────────────────────────────────────────────
+const _ftCv = document.getElementById('ft-canvas');
+const _ftCtx = _ftCv ? _ftCv.getContext('2d') : null;
+
+function renderFTFrame(b64, w, h) {
+  if (!_ftCtx) return;
+  const img = new Image();
+  img.onload = function() {
+    // draw to offscreen at native res, then read pixels for bottle rendering
+    const tmp = document.createElement('canvas');
+    tmp.width = w; tmp.height = h;
+    const tc = tmp.getContext('2d');
+    tc.drawImage(img, 0, 0, w, h);
+    const px = tc.getImageData(0, 0, w, h).data;
+    const cvW = _ftCv.width, cvH = _ftCv.height;
+    const scaleX = cvW / w, scaleY = cvH / h;
+    const scale = Math.min(scaleX, scaleY);
+    const radius = scale * 0.38;
+    _ftCtx.fillStyle = '#010108';
+    _ftCtx.fillRect(0, 0, cvW, cvH);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const r = px[i], g = px[i+1], b = px[i+2];
+        const cx = x * scale + scale / 2;
+        const cy = y * scale + scale / 2;
+        const bright = Math.max(r, g, b) / 255;
+        // glow
+        if (bright > 0.05) {
+          const grad = _ftCtx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius * 1.6);
+          grad.addColorStop(0, `rgba(${r},${g},${b},${bright * 0.25})`);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          _ftCtx.fillStyle = grad;
+          _ftCtx.fillRect(cx - scale, cy - scale, scale * 2, scale * 2);
+        }
+        // bottle
+        _ftCtx.beginPath();
+        _ftCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+        _ftCtx.fillStyle = `rgb(${r},${g},${b})`;
+        _ftCtx.fill();
+        // specular highlight
+        if (bright > 0.1) {
+          _ftCtx.beginPath();
+          _ftCtx.arc(cx - radius * 0.2, cy - radius * 0.25, radius * 0.22, 0, Math.PI * 2);
+          _ftCtx.fillStyle = `rgba(255,255,255,${bright * 0.2})`;
+          _ftCtx.fill();
+        }
+      }
+    }
+  };
+  img.src = 'data:image/png;base64,' + b64;
+}
 </script>
 </body>
 </html>
