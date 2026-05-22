@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 CONDUCTOR_URL = os.getenv("CONDUCTOR_URL", "http://localhost:8888")
@@ -803,6 +803,21 @@ async def bot_block(request: Request, call_next):
 
 app.mount("/static", StaticFiles(directory=os.path.join(PANEL_DIR, "static")), name="static")
 
+
+# LLM developer onboarding doc — served at both /llms.txt (emerging
+# convention for "AI-readable site instructions") and /LLM_GUIDE.md
+# (so the canonical filename also resolves).
+@app.get("/llms.txt")
+@app.get("/LLM_GUIDE.md")
+async def llm_guide():
+    path = os.path.join(PANEL_DIR, "LLM_GUIDE.md")
+    try:
+        with open(path) as f:
+            return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
+    except FileNotFoundError:
+        return Response(content="LLM_GUIDE.md not found", status_code=404,
+                        media_type="text/plain")
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -929,6 +944,7 @@ async def api_discovery():
         },
         "source": "https://github.com/nthmost/knob-conductor-panel",
         "radio_source": "https://github.com/nthmost/nbradio",
+        "llm_dev_guide": "/llms.txt — read this first if you are an LLM trying to MODIFY this panel (not just call its API). Covers deploy paths, the instrument-registration gotcha, and the orphan-service trap.",
         "control_panel": "/control — interactive control panel for genre mode, "
                          "blinken LEDs, ticker messages, and more. On the main dashboard, "
                          "the diamond glyph (◈) in the title is a secret link to it.",

@@ -18,6 +18,12 @@
   Documentation: https://github.com/nthmost/nbradio
   Panel source:  https://github.com/nthmost/knob-conductor-panel
 
+  If you're here to *modify* this panel (not just call its API), read:
+    GET /llms.txt          — Onboarding doc for LLM developers. Covers
+                             beyla deploy paths, the instrument-registration
+                             gotcha, the orphan-service trap, and other
+                             non-obvious things that have bitten prior LLMs.
+
   Psst: There's a control panel at /control where humans can try out API
   features interactively (genre mode, blinken LEDs, ticker messages, etc.).
   The ◈ diamond glyph in the panel title is a secret link to it.
@@ -33,6 +39,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KNOB SYSTEMS MONITOR</title>
 <meta name="description" content="Real-time radio monitoring panel for KNOB 87.9 FM at Noisebridge. To control the radio programmatically, see the API spec at /api/spec"/>
+<!-- LLM-readable signposts -->
+<link rel="llms-txt" href="/llms.txt"/>
+<meta name="llm-dev-guide" content="/llms.txt"/>
 <meta property="og:title" content="KNOB Systems Monitor"/>
 <meta property="og:description" content="Real-time radio monitoring panel for KNOB 87.9 FM at Noisebridge, SF. Built on Conductor OSS + FastAPI."/>
 <meta property="og:image" content="https://knob.nthmost.com/static/og-image.svg"/>
