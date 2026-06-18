@@ -409,6 +409,21 @@ html, body {
   gap: 0.75rem;
 }
 
+/* repo link shown as a footer line on mobile only (hidden on desktop, where
+   the header copy is used instead). Declared before the media query so the
+   mobile `display: block` override below wins on narrow screens. */
+#repo-link-footer {
+  display: none;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
 /* ── mobile view ──
    The full dashboard is a wall-display experience; a phone wants the few
    things you actually check on the go. On narrow screens we drop the
@@ -424,7 +439,9 @@ html, body {
   #panel-title { font-size: 1.3rem; }
   #panel-subtitle { font-size: 0.8rem; }
   #nb-status-widget { width: 100%; justify-content: flex-start; }
+  /* header repo link hides on phones; it reappears as a footer line below */
   #panel-header > a { display: none; }
+  #repo-link-footer { display: block; }
 
   /* hide everything that's just for the big wall display */
   #metrics-bar,
