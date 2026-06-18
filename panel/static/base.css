@@ -459,7 +459,24 @@ html, body {
   }
   #ticker-box { min-height: 240px; max-height: 60vh; }
 
-  /* bigger, finger-friendly listen button, comfortably inside the card */
-  #np-play-btn { width: 52px; height: 52px; top: 0.75rem; right: 0.75rem; }
+  /* Now Playing for mobile: pull the listen button out of the absolute
+     top-right corner (where the wide desktop card pushed it off-screen)
+     and make it a big, bright, centered tap target at the top of the card.
+     In normal flow it can never be clipped or obscured.
+     NOTE: these widgets are styled in index.html's inline <style>, which
+     loads after this file — so we need a #np-card descendant selector to
+     out-specify those single-id rules. */
+  #ticker-section #np-card { padding-top: 1.1rem; }
+  #np-card #np-play-btn {
+    position: static;
+    width: 66px; height: 66px;
+    margin: 0 auto 0.9rem;
+    border-color: var(--accent-primary, #00e5ff);
+  }
+  #np-card #np-play-btn::after { border-left-color: var(--accent-primary, #00e5ff); }
+  /* keep the conditional DJ/genre badges tucked in the top-right corner,
+     clear of the now-centered button */
+  #np-card #np-dj-badge    { top: 0.85rem; }
+  #np-card #np-genre-badge { top: 0.85rem; right: 0.75rem; }
 }
 
