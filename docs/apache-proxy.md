@@ -1,6 +1,6 @@
 # Reverse proxy with Apache
 
-To expose the panel at a public domain (e.g. `knob.nthmost.com`), add a VirtualHost on your edge server:
+To expose the panel at a public domain (e.g. `knob.nthmost.net`), add a VirtualHost on your edge server:
 
 ```apache
 <VirtualHost *:443>

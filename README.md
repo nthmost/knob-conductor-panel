@@ -4,7 +4,7 @@ A real-time radio station monitoring panel built on [Conductor OSS](https://gith
 
 Originally built for **KNOB 87.9 FM** at [Noisebridge](https://www.noisebridge.net/), San Francisco's hackerspace.
 
-Live at **knob.nthmost.com**
+Live at **knob.nthmost.net**
 
 ![Blade Runner theme](docs/screenshot.png)
 
@@ -265,7 +265,7 @@ knob-conductor-panel/
 
 ## Deployment
 
-Deployed on **beyla** (10.100.0.2, RNA Lounge at Noisebridge) as `knob-panel.service` on port 8082. Reverse-proxied via Apache at `knob.nthmost.com`.
+Deployed on **beyla** (10.100.0.2, RNA Lounge at Noisebridge) as `knob-panel.service` on port 8082. Reverse-proxied via Apache at `knob.nthmost.net`.
 
 Continuous deployment: `deploy.sh` runs every minute via cron, pulls from `origin/main`, and restarts the service on changes.
 
